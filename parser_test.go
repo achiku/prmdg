@@ -149,7 +149,7 @@ func TestParseActionLargeJSON(t *testing.T) {
 			// 	t.Fatal(err)
 			// }
 			// t.Logf("%s", resp)
-			req, err := format.Source([]byte(a.RequestStruct()))
+			req, err := format.Source(a.RequestStruct())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -203,7 +203,7 @@ func TestPropertyField(t *testing.T) {
 
 	for _, c := range cases {
 		str := c.Prop.Field()
-		if str != c.Expected {
+		if string(str) != c.Expected {
 			t.Errorf("want %s got %s", c.Expected, str)
 		}
 	}
@@ -241,8 +241,8 @@ func TestResourceStruct(t *testing.T) {
 		},
 	}
 
-	str := res.Struct()
-	ss, err := format.Source([]byte(str))
+	b := res.Struct()
+	ss, err := format.Source(b)
 	if err != nil {
 		t.Fatal(err)
 	}

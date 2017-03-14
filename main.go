@@ -60,7 +60,7 @@ func generateStructFile(pkg *string, fp string, op *string) error {
 	var src []byte
 	src = append(src, []byte(fmt.Sprintf("package %s\n\n", *pkg))...)
 	for _, res := range resources {
-		ss, err := format.Source([]byte(res.Struct()))
+		ss, err := format.Source(res.Struct())
 		if err != nil {
 			return errors.Wrapf(err, "failed to format resource: %s: %s", res.Name, res.Title)
 		}
@@ -68,13 +68,13 @@ func generateStructFile(pkg *string, fp string, op *string) error {
 	}
 	for resName, actions := range links {
 		for _, action := range actions {
-			req, err := format.Source([]byte(action.RequestStruct()))
+			req, err := format.Source(action.RequestStruct())
 			if err != nil {
 				return errors.Wrapf(err, "failed to format request struct: %s, %s", resName, action.Href)
 			}
 			src = append(src, req...)
 
-			resp, err := format.Source([]byte(action.ResponseStruct()))
+			resp, err := format.Source(action.ResponseStruct())
 			if err != nil {
 				return errors.Wrapf(err, "failed to format response struct: %s, %s", resName, action.Href)
 			}
@@ -110,9 +110,11 @@ func generateValidatorFile(pkg *string, fp string, op *string) error {
 	}
 	generator := jsval.NewGenerator()
 	var src bytes.Buffer
-	fmt.Fprintln(&src, fmt.Sprintf("package %s", *pkg))
-	fmt.Fprintln(&src, "import \"github.com/lestrrat/go-jsval\"")
-	generator.Process(&src, validators...)
+	fmt.Fprintf(&src, "package %s\n", *pkg)
+	fmt.Fprint(&src, "import \"github.com/lestrrat/go-jsval\"\n")
+	if err := generator.Process(&src, validators...); err != nil {
+		return err
+	}
 
 	var out *os.File
 	if *op != "" {

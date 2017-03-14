@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -37,15 +38,16 @@ type Resource struct {
 }
 
 // Struct returns struct go representation of resource
-func (rs *Resource) Struct() string {
+func (rs *Resource) Struct() []byte {
 	name := varfmt.PublicVarName(rs.Name)
-	str := fmt.Sprintf("// %s struct for %s resource\n", name, rs.Name)
-	str += fmt.Sprintf("type %s struct {\n", name)
+	var src bytes.Buffer
+	fmt.Fprintf(&src, "// %s struct for %s resource\n", name, rs.Name)
+	fmt.Fprintf(&src, "type %s struct {\n", name)
 	for _, p := range rs.Properties {
-		str += p.Field() + "\n"
+		fmt.Fprintf(&src, "%s\n", p.Field())
 	}
-	str += "}\n"
-	return str
+	fmt.Fprint(&src, "}\n")
+	return src.Bytes()
 }
 
 // Property resource properties
@@ -58,7 +60,7 @@ type Property struct {
 }
 
 // Field returns go struct field representation of property
-func (pr *Property) Field() string {
+func (pr *Property) Field() []byte {
 	structName := varfmt.PublicVarName(strings.Replace(pr.Name, "-", "_", -1))
 	// FIXME: need to support multiple types including 'null'
 	// https://github.com/interagent/prmd/blob/master/docs/schemata.md#definitions
@@ -85,9 +87,10 @@ func (pr *Property) Field() string {
 	if !pr.Required {
 		empty = ",omitempty"
 	}
-	tag := fmt.Sprintf("json:\"%s%s\" schema:\"%s\"", pr.Name, empty, pr.Name)
-	src := fmt.Sprintf("%s %s `%s`", structName, t, tag)
-	return src
+
+	var src bytes.Buffer
+	fmt.Fprintf(&src, "%s %s `json:\"%s%s\" schema:\"%s\"`", structName, t, pr.Name, empty, pr.Name)
+	return src.Bytes()
 }
 
 // Action endpoint
@@ -100,38 +103,42 @@ type Action struct {
 }
 
 // RequestStruct request struct
-func (a *Action) RequestStruct() string {
+func (a *Action) RequestStruct() []byte {
 	if a.Request == nil {
-		return ""
+		return []byte("")
 	}
 	name := varfmt.PublicVarName(
 		strings.Replace(a.Response.Name+strings.Title(a.Rel), "-", "_", -1) + "Request")
-	str := fmt.Sprintf("// %s struct for %s\n", name, a.Request.Name)
-	str += fmt.Sprintf("// %s: %s\n", a.Method, a.Href)
-	str += fmt.Sprintf("type %s struct {\n", name)
+
+	var src bytes.Buffer
+	fmt.Fprintf(&src, "// %s struct for %s\n", name, a.Request.Name)
+	fmt.Fprintf(&src, "// %s: %s\n", a.Method, a.Href)
+	fmt.Fprintf(&src, "type %s struct {\n", name)
 	for _, p := range a.Request.Properties {
-		str += p.Field() + "\n"
+		fmt.Fprintf(&src, "%s\n", p.Field())
 	}
-	str += "}\n"
-	return str
+	fmt.Fprint(&src, "}\n")
+	return src.Bytes()
 }
 
 // ResponseStruct response struct
-func (a *Action) ResponseStruct() string {
+func (a *Action) ResponseStruct() []byte {
 	if a.Response == nil {
-		return ""
+		return []byte("")
 	}
 	name := varfmt.PublicVarName(
 		strings.Replace(a.Response.Name+strings.Title(a.Rel), "-", "_", -1) + "Response")
 	orgName := varfmt.PublicVarName(a.Response.Name)
-	str := fmt.Sprintf("// %s struct for %s\n", name, a.Response.Name)
-	str += fmt.Sprintf("// %s: %s\n", a.Method, a.Href)
+
+	var src bytes.Buffer
+	fmt.Fprintf(&src, "// %s struct for %s\n", name, a.Response.Name)
+	fmt.Fprintf(&src, "// %s: %s\n", a.Method, a.Href)
 	if a.Rel == "instances" {
-		str += fmt.Sprintf("type %s []%s\n", name, orgName)
-		return str
+		fmt.Fprintf(&src, "type %s []%s\n", name, orgName)
+		return src.Bytes()
 	}
-	str += fmt.Sprintf("type %s %s\n", name, orgName)
-	return str
+	fmt.Fprintf(&src, "type %s %s\n", name, orgName)
+	return src.Bytes()
 }
 
 func resolveSchema(sch *schema.Schema, root *schema.Schema) (*schema.Schema, error) {
