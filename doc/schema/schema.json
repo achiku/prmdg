@@ -1,0 +1,257 @@
+{
+  "$schema": "http://interagent.github.io/interagent-hyper-schema",
+  "type": [
+    "object"
+  ],
+  "definitions": {
+    "task": {
+      "$schema": "http://json-schema.org/draft-04/hyper-schema",
+      "title": "タスク",
+      "description": "タスクを表します。",
+      "stability": "prototype",
+      "strictProperties": true,
+      "type": [
+        "object"
+      ],
+      "definitions": {
+        "id": {
+          "description": "タスクID",
+          "example": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
+          "readOnly": true,
+          "format": "uuid",
+          "type": [
+            "string"
+          ]
+        },
+        "userId": {
+          "$ref": "#/definitions/user/definitions/id"
+        },
+        "identity": {
+          "$ref": "#/definitions/task/definitions/id"
+        },
+        "name": {
+          "description": "タスク名",
+          "example": "コーヒーを買う",
+          "readOnly": true,
+          "type": [
+            "string"
+          ]
+        },
+        "status": {
+          "description": "タスク状態",
+          "example": "done",
+          "readOnly": true,
+          "type": [
+            "string"
+          ],
+          "enum": [
+            "done",
+            "doing",
+            "todo"
+          ]
+        },
+        "totalDuration": {
+          "description": "累積タスク対応時間(秒)",
+          "example": 120,
+          "readOnly": true,
+          "type": [
+            "integer"
+          ]
+        },
+        "createdAt": {
+          "description": "作成日時",
+          "format": "date-time",
+          "example": "2016-02-01T12:13:14Z",
+          "readOnly": true,
+          "type": [
+            "string"
+          ]
+        },
+        "startedAt": {
+          "description": "直近の開始日時",
+          "format": "date-time",
+          "example": "2016-02-01T12:13:14Z",
+          "readOnly": true,
+          "type": [
+            "string"
+          ]
+        },
+        "completedAt": {
+          "description": "直近の終了時間日時",
+          "format": "date-time",
+          "example": "2016-02-01T12:13:14Z",
+          "readOnly": true,
+          "type": [
+            "string"
+          ]
+        }
+      },
+      "links": [
+        {
+          "description": "タスクの詳細を取得します。(正常ステータスコード: `200`)",
+          "href": "/tasks/{(%23%2Fdefinitions%2Ftask%2Fdefinitions%2Fidentity)}",
+          "title": "詳細",
+          "method": "GET",
+          "rel": "self"
+        },
+        {
+          "description": "タスクを作成します。(正常ステータスコード: `201`)",
+          "href": "/tasks",
+          "title": "作成",
+          "method": "POST",
+          "rel": "create",
+          "schema": {
+            "properties": {
+              "name": {
+                "$ref": "#/definitions/task/definitions/name"
+              },
+              "userId": {
+                "$ref": "#/definitions/task/definitions/userId"
+              }
+            },
+            "required": [
+              "name",
+              "userId"
+            ],
+            "type": [
+              "object"
+            ]
+          },
+          "targetSchema": {
+            "$ref": "#/definitions/task"
+          }
+        },
+        {
+          "description": "タスクの一覧を取得します。(正常ステータスコード: `200`)",
+          "href": "/tasks",
+          "title": "一覧",
+          "method": "GET",
+          "rel": "instances",
+          "schema": {
+            "properties": {
+              "limit": {
+                "description": "取得する要素数(デフォルト20)",
+                "example": 20,
+                "type": [
+                  "integer"
+                ]
+              },
+              "offset": {
+                "description": "取得する要素のオフセット(0から開始)",
+                "example": 20,
+                "type": [
+                  "integer"
+                ]
+              }
+            },
+            "type": [
+              "object"
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/task/definitions/id"
+        },
+        "name": {
+          "$ref": "#/definitions/task/definitions/name"
+        },
+        "status": {
+          "$ref": "#/definitions/task/definitions/status"
+        },
+        "totalDuration": {
+          "$ref": "#/definitions/task/definitions/totalDuration"
+        },
+        "startedAt": {
+          "$ref": "#/definitions/task/definitions/startedAt"
+        },
+        "createdAt": {
+          "$ref": "#/definitions/task/definitions/createdAt"
+        },
+        "completedAt": {
+          "$ref": "#/definitions/task/definitions/completedAt"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "status",
+        "totalDuration",
+        "startedAt",
+        "createdAt",
+        "completedAt"
+      ]
+    },
+    "user": {
+      "$schema": "http://json-schema.org/draft-04/hyper-schema",
+      "title": "ユーザー",
+      "description": "ユーザーを表します。",
+      "stability": "prototype",
+      "strictProperties": true,
+      "type": [
+        "object"
+      ],
+      "definitions": {
+        "id": {
+          "description": "ユーザーID",
+          "example": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
+          "readOnly": true,
+          "format": "uuid",
+          "type": [
+            "string"
+          ]
+        },
+        "identity": {
+          "$ref": "#/definitions/user/definitions/id"
+        },
+        "name": {
+          "description": "ユーザー名",
+          "example": "8maki",
+          "readOnly": true,
+          "type": [
+            "string"
+          ]
+        }
+      },
+      "links": [
+        {
+          "description": "ログイン中のユーザー情報を取得します。(正常ステータスコード: `200`)",
+          "href": "/me",
+          "title": "詳細",
+          "method": "GET",
+          "rel": "self"
+        }
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/user/definitions/id"
+        },
+        "name": {
+          "$ref": "#/definitions/user/definitions/name"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    }
+  },
+  "properties": {
+    "task": {
+      "$ref": "#/definitions/task"
+    },
+    "user": {
+      "$ref": "#/definitions/user"
+    }
+  },
+  "description": "Task API",
+  "id": "tasky",
+  "links": [
+    {
+      "href": "https://tasky.io/v1",
+      "rel": "self"
+    }
+  ],
+  "title": "tasky API JSON Schema"
+}

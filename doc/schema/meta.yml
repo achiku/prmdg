@@ -1,0 +1,6 @@
+description: Task API
+id: tasky
+links:
+  - href: https://tasky.io/v1
+    rel: self
+title: tasky API JSON Schema

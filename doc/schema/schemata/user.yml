@@ -1,0 +1,39 @@
+---
+"$schema": http://json-schema.org/draft-04/hyper-schema
+title: ユーザー
+description: ユーザーを表します。
+stability: prototype
+strictProperties: true
+type:
+  - object
+definitions:
+  id:
+    description: ユーザーID
+    example: "ec0a1edc-062e-11e7-8b1e-040ccee2aa06"
+    readOnly: true
+    format: uuid
+    type:
+      - string
+  identity:
+    $ref: "/schemata/user#/definitions/id"
+  name:
+    description: ユーザー名
+    example: "8maki"
+    readOnly: true
+    type:
+      - string
+links:
+  - description: "ログイン中のユーザー情報を取得します。(正常ステータスコード: `200`)"
+    href: "/me"
+    title: 詳細
+    method: GET
+    rel: self
+properties:
+  id:
+    $ref: "/schemata/user#/definitions/id"
+  name:
+    $ref: "/schemata/user#/definitions/name"
+required:
+  - id
+  - name
+id: schemata/user
