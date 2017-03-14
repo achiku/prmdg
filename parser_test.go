@@ -125,7 +125,7 @@ func TestParseValidator(t *testing.T) {
 }
 
 func TestParseActionLargeJSON(t *testing.T) {
-	sc, err := schema.ReadFile("./doc/large-example.json")
+	sc, err := schema.ReadFile("./doc/schema/schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,11 +144,11 @@ func TestParseActionLargeJSON(t *testing.T) {
 	}
 	for _, ac := range act {
 		for _, a := range ac {
-			// resp, err := format.Source([]byte(a.ResponseStruct()))
-			// if err != nil {
-			// 	t.Fatal(err)
-			// }
-			// t.Logf("%s", resp)
+			resp, err := format.Source(a.ResponseStruct())
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Logf("%s", resp)
 			req, err := format.Source(a.RequestStruct())
 			if err != nil {
 				t.Fatal(err)
