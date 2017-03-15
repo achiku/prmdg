@@ -6,66 +6,9 @@ import (
 	"go/format"
 	"testing"
 
-	"github.com/achiku/varfmt"
-	"github.com/kylelemons/godebug/pretty"
-	hschema "github.com/lestrrat/go-jshschema"
 	schema "github.com/lestrrat/go-jsschema"
 	jsval "github.com/lestrrat/go-jsval"
 )
-
-func TestSchemaDefitionsPractive(t *testing.T) {
-	sc, err := schema.ReadFile("./doc/schema/schema.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for structName, df := range sc.Definitions {
-		t.Logf("%s", varfmt.PublicVarName(structName))
-		t.Logf("%s", df.BaseURL())
-		for n, tp := range df.Definitions {
-			if tp.IsResolved() {
-				t.Logf("  %s: %s(%s) res: %t",
-					varfmt.PublicVarName(n), tp.Type, tp.Format, df.IsPropRequired(n))
-			} else {
-				a, err := tp.Resolve(nil)
-				if err != nil {
-					t.Fatal(err)
-				}
-				t.Logf("  %s: %s(%s) res: %t",
-					varfmt.PublicVarName(n), a.Type, a.Format, df.IsPropRequired(n))
-			}
-		}
-	}
-}
-
-func TestSchemaEndpointPractice(t *testing.T) {
-	sc, err := schema.ReadFile("./doc/schema/schema.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for structName, df := range sc.Definitions {
-		t.Logf("%s", structName)
-		hsc := hschema.New()
-		if err := hsc.Extract(df.Extras); err != nil {
-			t.Fatal(err)
-		}
-		for _, e := range hsc.Links {
-			t.Logf(" %s: %s", e.Method, e.Href)
-			t.Logf("   response: %s", e.Rel)
-			if e.Schema != nil {
-				t.Log("   request:")
-				for name, props := range e.Schema.Properties {
-					sh, err := resolveSchema(props, sc)
-					if err != nil {
-						t.Fatal(err)
-					}
-					t.Logf("       %s %v, %t", name, sh.Type, df.IsPropRequired(name))
-				}
-			}
-		}
-	}
-}
 
 func testNewParser(t *testing.T) *Parser {
 	sc, err := schema.ReadFile("./doc/schema/schema.json")
@@ -79,12 +22,28 @@ func testNewParser(t *testing.T) *Parser {
 }
 
 func TestParseResources(t *testing.T) {
-	parser := testNewParser(t)
-	res, err := parser.ParseResources()
+	sc, err := schema.ReadFile("./doc/large-example.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	pretty.Print(res)
+	parser := &Parser{
+		schema:  sc,
+		pkgName: "model",
+	}
+	_, err = parser.ParseResources()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// pretty.Print(res)
+	// log.Printf("%v", res)
+	// for key, r := range res {
+	// 	t.Logf("%s/%s", key, r.Name)
+	// 	for _, prop := range r.Properties {
+	// 		if len(prop.References) > 2 {
+	// 			t.Logf("  %s %s: %s", prop.Name, prop.Types, prop.References)
+	// 		}
+	// 	}
+	// }
 }
 
 func TestParseActions(t *testing.T) {

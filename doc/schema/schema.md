@@ -34,6 +34,8 @@ Stability: `prototype`
 | **startedAt** | *date-time* | 直近の開始日時 | `"2016-02-01T12:13:14Z"` |
 | **status** | *string* | タスク状態<br/> **one of:**`"done"` or `"doing"` or `"todo"` | `"done"` |
 | **totalDuration** | *integer* | 累積タスク対応時間(秒) | `120` |
+| **[user:id](#resource-user)** | *uuid* | ユーザーID | `"ec0a1edc-062e-11e7-8b1e-040ccee2aa06"` |
+| **[user:name](#resource-user)** | *string* | ユーザー名 | `"8maki"` |
 
 ### <a name="link-GET-task-/tasks/{(%23%2Fdefinitions%2Ftask%2Fdefinitions%2Fidentity)}">タスク 詳細</a>
 
@@ -61,6 +63,10 @@ HTTP/1.1 200 OK
 {
   "id": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
   "name": "コーヒーを買う",
+  "user": {
+    "id": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
+    "name": "8maki"
+  },
   "status": "done",
   "totalDuration": 120,
   "startedAt": "2016-02-01T12:13:14Z",
@@ -108,6 +114,10 @@ HTTP/1.1 201 Created
 {
   "id": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
   "name": "コーヒーを買う",
+  "user": {
+    "id": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
+    "name": "8maki"
+  },
   "status": "done",
   "totalDuration": 120,
   "startedAt": "2016-02-01T12:13:14Z",
@@ -153,6 +163,10 @@ HTTP/1.1 200 OK
   {
     "id": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
     "name": "コーヒーを買う",
+    "user": {
+      "id": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
+      "name": "8maki"
+    },
     "status": "done",
     "totalDuration": 120,
     "startedAt": "2016-02-01T12:13:14Z",

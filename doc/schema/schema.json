@@ -118,7 +118,10 @@
             ]
           },
           "targetSchema": {
-            "$ref": "#/definitions/task"
+            "$ref": "#/definitions/task",
+            "type": [
+              "object"
+            ]
           }
         },
         {
@@ -147,6 +150,14 @@
             "type": [
               "object"
             ]
+          },
+          "targetSchema": {
+            "items": {
+              "$ref": "#/definitions/task"
+            },
+            "type": [
+              "array"
+            ]
           }
         }
       ],
@@ -156,6 +167,9 @@
         },
         "name": {
           "$ref": "#/definitions/task/definitions/name"
+        },
+        "user": {
+          "$ref": "#/definitions/user"
         },
         "status": {
           "$ref": "#/definitions/task/definitions/status"

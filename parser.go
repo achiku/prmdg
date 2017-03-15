@@ -16,6 +16,16 @@ import (
 	"github.com/pkg/errors"
 )
 
+// PropType proper type
+type PropType int
+
+// Property types
+const (
+	PropTypeScalar PropType = iota
+	PropTypeArray
+	PropTypeObject
+)
+
 // Parser convertor
 type Parser struct {
 	schema  *schema.Schema
@@ -34,6 +44,7 @@ func NewParser(sh *schema.Schema, pkgName string) *Parser {
 type Resource struct {
 	Name       string
 	Title      string
+	Schema     *schema.Schema
 	Properties []Property
 }
 
@@ -46,17 +57,27 @@ func (rs *Resource) Struct() []byte {
 	for _, p := range rs.Properties {
 		fmt.Fprintf(&src, "%s\n", p.Field())
 	}
-	fmt.Fprint(&src, "}\n")
+	fmt.Fprint(&src, "}\n\n")
 	return src.Bytes()
 }
 
 // Property resource properties
 type Property struct {
-	Name     string
-	Format   string
-	Types    []string
-	Required bool
-	Pattern  *regexp.Regexp
+	Name             string
+	Format           string
+	Types            []string
+	SecondTypes      []string
+	PropType         PropType
+	Required         bool
+	Reference        string
+	References       []string
+	Pattern          *regexp.Regexp
+	Schema           *schema.Schema
+	InlineProperties []Property
+}
+
+func (pr *Property) refToKey() string {
+	return strings.Replace(pr.Reference, "#/definitions/", "", 1)
 }
 
 // Field returns go struct field representation of property
@@ -68,21 +89,17 @@ func (pr *Property) Field() []byte {
 		t     string
 		empty string
 	)
-	if len(pr.Types) == 1 {
-		switch pr.Types[0] {
-		case "number":
-			t = "float64"
-		case "integer":
-			t = "int64"
-		case "boolean":
-			t = "bool"
-		case "string":
-			if pr.Format == "date-time" {
-				t = "time.Time"
-			} else {
-				t = "string"
-			}
+	switch {
+	case pr.PropType == PropTypeScalar && len(pr.Types) == 1:
+		t = convertScalarProp(pr.Types[0], pr.Format)
+	case pr.PropType == PropTypeArray:
+		if pr.SecondTypes[0] == "object" {
+			t = fmt.Sprintf("[]%s", varfmt.PublicVarName(pr.refToKey()))
+		} else {
+			t = fmt.Sprintf("[]%s", convertScalarProp(pr.SecondTypes[0], pr.Format))
 		}
+	case pr.PropType == PropTypeObject:
+		t = fmt.Sprintf("*%s", varfmt.PublicVarName(pr.refToKey()))
 	}
 	if !pr.Required {
 		empty = ",omitempty"
@@ -91,6 +108,24 @@ func (pr *Property) Field() []byte {
 	var src bytes.Buffer
 	fmt.Fprintf(&src, "%s %s `json:\"%s%s\" schema:\"%s\"`", structName, t, pr.Name, empty, pr.Name)
 	return src.Bytes()
+}
+
+func convertScalarProp(t, f string) string {
+	switch t {
+	case "number":
+		return "float64"
+	case "integer":
+		return "int64"
+	case "boolean":
+		return "bool"
+	case "string":
+		if f == "date-time" {
+			return "time.Time"
+		}
+		return "string"
+	default:
+		return ""
+	}
 }
 
 // Action endpoint
@@ -117,7 +152,7 @@ func (a *Action) RequestStruct() []byte {
 	for _, p := range a.Request.Properties {
 		fmt.Fprintf(&src, "%s\n", p.Field())
 	}
-	fmt.Fprint(&src, "}\n")
+	fmt.Fprint(&src, "}\n\n")
 	return src.Bytes()
 }
 
@@ -137,7 +172,7 @@ func (a *Action) ResponseStruct() []byte {
 		fmt.Fprintf(&src, "type %s []%s\n", name, orgName)
 		return src.Bytes()
 	}
-	fmt.Fprintf(&src, "type %s %s\n", name, orgName)
+	fmt.Fprintf(&src, "type %s %s\n\n", name, orgName)
 	return src.Bytes()
 }
 
@@ -219,22 +254,63 @@ func (p *Parser) ParseResources() (map[string]Resource, error) {
 	// parse resource itself
 	for id, df := range p.schema.Definitions {
 		rs := Resource{
-			Name:  id,
-			Title: df.Title,
+			Name:   id,
+			Title:  df.Title,
+			Schema: df,
 		}
 		// parse resource field
 		var flds []Property
-		for name, tp := range df.Definitions {
+		for name, tp := range df.Properties {
+			ref := tp.Reference
 			fieldSchema, err := resolveSchema(tp, p.schema)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to resolve, %s:%s", id, name)
 			}
+
 			fld := Property{
-				Name:     name,
-				Format:   string(tp.Format),
-				Types:    typesToStrings(fieldSchema.Type),
-				Required: df.IsPropRequired(name),
-				Pattern:  tp.Pattern,
+				Name:      name,
+				Format:    string(fieldSchema.Format),
+				Types:     typesToStrings(fieldSchema.Type),
+				Required:  df.IsPropRequired(name),
+				Pattern:   fieldSchema.Pattern,
+				Reference: ref,
+				Schema:    fieldSchema,
+			}
+			if fieldSchema.Items != nil && fieldSchema.Type.Contains(schema.ArrayType) {
+				if len(fieldSchema.Items.Schemas) != 1 {
+					return nil, errors.Errorf("multiple items not supported: %s, %s", id, name)
+				}
+				ss := fieldSchema.Items.Schemas[0]
+				if ss.Reference == "" {
+					var ff []Property
+					for k, v := range ss.Properties {
+						f := Property{
+							Name:      k,
+							Format:    string(v.Format),
+							Pattern:   v.Pattern,
+							Reference: v.Reference,
+							Types:     typesToStrings(v.Type),
+							Schema:    v,
+							PropType:  PropTypeScalar,
+						}
+						ff = append(ff, f)
+					}
+					fld.InlineProperties = ff
+					fld.PropType = PropTypeArray
+					fld.Reference = ss.Reference
+				} else {
+					itemSchema, err := resolveSchema(fieldSchema.Items.Schemas[0], p.schema)
+					if err != nil {
+						return nil, errors.Wrapf(err, "failed to resolve, %s:%s", id, name)
+					}
+					fld.PropType = PropTypeArray
+					fld.SecondTypes = typesToStrings(itemSchema.Type)
+					fld.Reference = ss.Reference
+				}
+			} else if fieldSchema.Type.Contains(schema.ObjectType) {
+				fld.PropType = PropTypeObject
+			} else {
+				fld.PropType = PropTypeScalar
 			}
 			flds = append(flds, fld)
 		}
@@ -269,16 +345,18 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 			if e.Schema != nil {
 				var flds []Property
 				for name, props := range e.Schema.Properties {
+					ref := props.Reference
 					sh, err := resolveSchema(props, p.schema)
 					if err != nil {
 						return nil, errors.Wrapf(err, "failed to resolve, %s:%s", id, name)
 					}
 					fld := Property{
-						Name:     name,
-						Types:    typesToStrings(sh.Type),
-						Format:   string(sh.Format),
-						Required: e.Schema.IsPropRequired(name),
-						Pattern:  sh.Pattern,
+						Name:      name,
+						Types:     typesToStrings(sh.Type),
+						Format:    string(sh.Format),
+						Required:  e.Schema.IsPropRequired(name),
+						Pattern:   sh.Pattern,
+						Reference: ref,
 					}
 					flds = append(flds, fld)
 				}

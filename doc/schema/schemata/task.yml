@@ -84,7 +84,9 @@ links:
       type:
         - object
     targetSchema:
-      $ref: "/schemata/task#"
+      $ref: "/schemata/task"
+      type:
+        - object
   - description: "タスクの一覧を取得します。(正常ステータスコード: `200`)"
     href: "/tasks"
     title: 一覧
@@ -104,11 +106,18 @@ links:
             - integer
       type:
         - object
+    targetSchema:
+      items:
+        $ref: "/schemata/task"
+      type:
+        - array
 properties:
   id:
     $ref: "/schemata/task#/definitions/id"
   name:
     $ref: "/schemata/task#/definitions/name"
+  user:
+    $ref: "/schemata/user"
   status:
     $ref: "/schemata/task#/definitions/status"
   totalDuration:
