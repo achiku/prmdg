@@ -179,42 +179,36 @@ func sortProperties(props []Property) []Property {
 	return sorted
 }
 
-func sortResources(res map[string]Resource) map[string]Resource {
-	var ids []string
-	for id := range res {
-		ids = append(ids, id)
+func sortActions(acs []Action) []Action {
+	aMap := make(map[string]Action)
+	for _, a := range acs {
+		aMap[a.Href] = a
 	}
-	sort.Strings(ids)
-
-	sorted := make(map[string]Resource)
-	for _, id := range ids {
-		sorted[id] = res[id]
+	var refs []string
+	for r := range aMap {
+		refs = append(refs, r)
+	}
+	sort.Strings(refs)
+	var sorted []Action
+	for _, r := range refs {
+		sorted = append(sorted, aMap[r])
 	}
 	return sorted
 }
 
-func sorteActions(links map[string][]Action) map[string][]Action {
-	var ids []string
-	for id := range links {
-		ids = append(ids, id)
+func sortValidator(vals []*jsval.JSVal) []*jsval.JSVal {
+	vMap := make(map[string]*jsval.JSVal)
+	for _, v := range vals {
+		vMap[v.Name] = v
 	}
-	sort.Strings(ids)
-
-	sorted := make(map[string][]Action)
-	for _, id := range ids {
-		actions := links[id]
-		hrefMap := make(map[string]Action)
-		var hrefs []string
-		for _, ac := range actions {
-			hrefs = append(hrefs, ac.Href)
-			hrefMap[ac.Href] = ac
-		}
-		sort.Strings(hrefs)
-		var sortedActions []Action
-		for _, href := range hrefs {
-			sortedActions = append(sortedActions, hrefMap[href])
-		}
-		sorted[id] = sortedActions
+	var names []string
+	for n := range vMap {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	var sorted []*jsval.JSVal
+	for _, n := range names {
+		sorted = append(sorted, vMap[n])
 	}
 	return sorted
 }
@@ -247,7 +241,7 @@ func (p *Parser) ParseResources() (map[string]Resource, error) {
 		rs.Properties = sortProperties(flds)
 		res[id] = rs
 	}
-	return sortResources(res), nil
+	return res, nil
 }
 
 // ParseActions parse endpoints
@@ -327,9 +321,9 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 			}
 			eps = append(eps, ep)
 		}
-		eptsMap[id] = eps
+		eptsMap[id] = sortActions(eps)
 	}
-	return sorteActions(eptsMap), nil
+	return eptsMap, nil
 }
 
 // ParseValidators parse validator
@@ -363,5 +357,5 @@ func (p *Parser) ParseValidators() ([]*jsval.JSVal, error) {
 			validators = append(validators, v)
 		}
 	}
-	return validators, nil
+	return sortValidator(validators), nil
 }

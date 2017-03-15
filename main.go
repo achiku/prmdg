@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/format"
 	"os"
+	"sort"
 
 	schema "github.com/lestrrat/go-jsschema"
 	jsval "github.com/lestrrat/go-jsval"
@@ -59,24 +60,38 @@ func generateStructFile(pkg *string, fp string, op *string) error {
 
 	var src []byte
 	src = append(src, []byte(fmt.Sprintf("package %s\n\n", *pkg))...)
-	for _, res := range resources {
+
+	var resKeys []string
+	for key := range resources {
+		resKeys = append(resKeys, key)
+	}
+	sort.Strings(resKeys)
+	for _, k := range resKeys {
+		res := resources[k]
 		ss, err := format.Source(res.Struct())
 		if err != nil {
 			return errors.Wrapf(err, "failed to format resource: %s: %s", res.Name, res.Title)
 		}
 		src = append(src, ss...)
 	}
-	for resName, actions := range links {
+
+	var linkKeys []string
+	for key := range links {
+		linkKeys = append(linkKeys, key)
+	}
+	sort.Strings(linkKeys)
+	for _, k := range linkKeys {
+		actions := links[k]
 		for _, action := range actions {
 			req, err := format.Source(action.RequestStruct())
 			if err != nil {
-				return errors.Wrapf(err, "failed to format request struct: %s, %s", resName, action.Href)
+				return errors.Wrapf(err, "failed to format request struct: %s, %s", k, action.Href)
 			}
 			src = append(src, req...)
 
 			resp, err := format.Source(action.ResponseStruct())
 			if err != nil {
-				return errors.Wrapf(err, "failed to format response struct: %s, %s", resName, action.Href)
+				return errors.Wrapf(err, "failed to format response struct: %s, %s", k, action.Href)
 			}
 			src = append(src, resp...)
 		}
