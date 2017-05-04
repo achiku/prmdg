@@ -1,16 +1,14 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
 	"go/format"
 	"testing"
 
 	schema "github.com/lestrrat/go-jsschema"
-	jsval "github.com/lestrrat/go-jsval"
 )
 
 func testNewParser(t *testing.T) *Parser {
+	// sc, err := schema.ReadFile("./doc/schema/schema.json")
 	sc, err := schema.ReadFile("./doc/schema/schema.json")
 	if err != nil {
 		t.Fatal(err)
@@ -22,28 +20,22 @@ func testNewParser(t *testing.T) *Parser {
 }
 
 func TestParseResources(t *testing.T) {
-	sc, err := schema.ReadFile("./doc/large-example.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	parser := &Parser{
-		schema:  sc,
-		pkgName: "model",
-	}
-	_, err = parser.ParseResources()
+	parser := testNewParser(t)
+	res, err := parser.ParseResources()
 	if err != nil {
 		t.Fatal(err)
 	}
 	// pretty.Print(res)
 	// log.Printf("%v", res)
-	// for key, r := range res {
-	// 	t.Logf("%s/%s", key, r.Name)
-	// 	for _, prop := range r.Properties {
-	// 		if len(prop.References) > 2 {
-	// 			t.Logf("  %s %s: %s", prop.Name, prop.Types, prop.References)
-	// 		}
-	// 	}
-	// }
+	for key, r := range res {
+		t.Logf("%s/%s", key, r.Name)
+		t.Logf("%s", r.Struct())
+		// for _, prop := range r.Properties {
+		// 	t.Logf("  %s %s: %s:%s %v",
+		// 		prop.Name, prop.Types, prop.SecondTypes, prop.Reference, prop.SecondReference)
+		// }
+	}
+	// t.Logf("%v", res)
 }
 
 func TestParseActions(t *testing.T) {
@@ -64,23 +56,6 @@ func TestParseActions(t *testing.T) {
 			t.Logf("  %s: %s", action.Method, action.Href)
 		}
 	}
-}
-
-func TestParseValidator(t *testing.T) {
-	parser := testNewParser(t)
-	vl, err := parser.ParseValidators()
-	if err != nil {
-		t.Fatal(err)
-	}
-	g := jsval.NewGenerator()
-	var src bytes.Buffer
-	fmt.Fprintln(&src, "import \"github.com/lestrrat/go-jsval\"")
-	g.Process(&src, vl...)
-	b, err := format.Source(src.Bytes())
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("%s", b)
 }
 
 func TestParseActionLargeJSON(t *testing.T) {

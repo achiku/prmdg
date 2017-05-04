@@ -70,14 +70,20 @@ type Property struct {
 	PropType         PropType
 	Required         bool
 	Reference        string
-	References       []string
+	SecondReference  string
 	Pattern          *regexp.Regexp
 	Schema           *schema.Schema
 	InlineProperties []Property
 }
 
 func (pr *Property) refToKey() string {
-	return strings.Replace(pr.Reference, "#/definitions/", "", 1)
+	var ref string
+	if pr.SecondReference != "" {
+		ref = pr.SecondReference
+	} else {
+		ref = pr.Reference
+	}
+	return strings.Replace(ref, "#/definitions/", "", 1)
 }
 
 // Field returns go struct field representation of property
@@ -93,8 +99,16 @@ func (pr *Property) Field() []byte {
 	case pr.PropType == PropTypeScalar && len(pr.Types) == 1:
 		t = convertScalarProp(pr.Types[0], pr.Format)
 	case pr.PropType == PropTypeArray:
-		if pr.SecondTypes[0] == "object" {
+		if len(pr.SecondTypes) == 1 && pr.SecondTypes[0] == "object" {
 			t = fmt.Sprintf("[]%s", varfmt.PublicVarName(pr.refToKey()))
+		} else if len(pr.InlineProperties) != 0 {
+			var inline bytes.Buffer
+			fmt.Fprint(&inline, "[]struct{\n")
+			for _, p := range pr.InlineProperties {
+				fmt.Fprintf(&inline, "%s\n", p.Field())
+			}
+			fmt.Fprint(&inline, "} ")
+			t = inline.String()
 		} else {
 			t = fmt.Sprintf("[]%s", convertScalarProp(pr.SecondTypes[0], pr.Format))
 		}
@@ -261,12 +275,12 @@ func (p *Parser) ParseResources() (map[string]Resource, error) {
 		// parse resource field
 		var flds []Property
 		for name, tp := range df.Properties {
+			// save reference before resolving ref
 			ref := tp.Reference
 			fieldSchema, err := resolveSchema(tp, p.schema)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to resolve, %s:%s", id, name)
 			}
-
 			fld := Property{
 				Name:      name,
 				Format:    string(fieldSchema.Format),
@@ -276,14 +290,32 @@ func (p *Parser) ParseResources() (map[string]Resource, error) {
 				Reference: ref,
 				Schema:    fieldSchema,
 			}
-			if fieldSchema.Items != nil && fieldSchema.Type.Contains(schema.ArrayType) {
+			switch {
+			case fieldSchema.Type.Contains(schema.ArrayType):
+				// if this field is an array
+				// currently this tool supports only one itme per array field
 				if len(fieldSchema.Items.Schemas) != 1 {
-					return nil, errors.Errorf("multiple items not supported: %s, %s", id, name)
+					return nil, errors.Errorf("array type has to have an item: %s, %s", id, name)
 				}
-				ss := fieldSchema.Items.Schemas[0]
-				if ss.Reference == "" {
-					var ff []Property
-					for k, v := range ss.Properties {
+				item := fieldSchema.Items.Schemas[0]
+				tmpItem, err := resolveSchema(item, p.schema)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to resolve, %s:%s", id, name)
+				}
+				switch {
+				case item.Reference == "" && item.Properties == nil:
+					// no reference, no item properties = primitive type
+					fld.SecondTypes = typesToStrings(item.Type)
+					// log.Printf("no ref, no prop: %s: %s", name, item.Reference)
+				case item.Reference != "" && !tmpItem.Type.Contains(schema.ObjectType):
+					// reference to primitive
+					fld.SecondTypes = typesToStrings(tmpItem.Type)
+					// log.Printf("ref to primitive: %s: %s", name, item.Reference)
+				case item.Reference == "" && item.Properties != nil:
+					// no reference, item properties = inline object
+					// parse properties and create inline fields
+					var inlineFields []Property
+					for k, v := range item.Properties {
 						f := Property{
 							Name:      k,
 							Format:    string(v.Format),
@@ -293,23 +325,23 @@ func (p *Parser) ParseResources() (map[string]Resource, error) {
 							Schema:    v,
 							PropType:  PropTypeScalar,
 						}
-						ff = append(ff, f)
+						inlineFields = append(inlineFields, f)
 					}
-					fld.InlineProperties = ff
-					fld.PropType = PropTypeArray
-					fld.Reference = ss.Reference
-				} else {
-					itemSchema, err := resolveSchema(fieldSchema.Items.Schemas[0], p.schema)
-					if err != nil {
-						return nil, errors.Wrapf(err, "failed to resolve, %s:%s", id, name)
-					}
-					fld.PropType = PropTypeArray
-					fld.SecondTypes = typesToStrings(itemSchema.Type)
-					fld.Reference = ss.Reference
+					fld.InlineProperties = inlineFields
+					// log.Printf("no ref, inline prop: %s: %s", name, item.Reference)
+				case item.Reference != "" && tmpItem.Type.Contains(schema.ObjectType):
+					// reference to object
+					fld.SecondTypes = []string{"object"}
+					fld.SecondReference = item.Reference
+					// log.Printf("ref to obj: %s: %s", name, item.Reference)
 				}
-			} else if fieldSchema.Type.Contains(schema.ObjectType) {
+				fld.PropType = PropTypeArray
+			case fieldSchema.Type.Contains(schema.ObjectType):
+				// if this field is a object
 				fld.PropType = PropTypeObject
-			} else {
+				fld.SecondTypes = []string{name}
+			default:
+				// if this field is a scalar
 				fld.PropType = PropTypeScalar
 			}
 			flds = append(flds, fld)
