@@ -15,7 +15,7 @@ type Resource struct {
 	Name       string
 	Title      string
 	Schema     *schema.Schema
-	Properties []Property
+	Properties []*Property
 }
 
 // Struct returns struct go representation of resource
@@ -41,9 +41,9 @@ type Property struct {
 	Required         bool
 	Reference        string
 	SecondReference  string
+	InlineProperties []*Property
 	Pattern          *regexp.Regexp
 	Schema           *schema.Schema
-	InlineProperties []Property
 }
 
 func (pr *Property) refToStructName() string {
@@ -54,6 +54,26 @@ func (pr *Property) refToStructName() string {
 		ref = pr.Reference
 	}
 	return strings.Replace(ref, "#/definitions/", "", 1)
+}
+
+func inlineOjbect(pr *Property) string {
+	var inline bytes.Buffer
+	fmt.Fprint(&inline, "struct{\n")
+	for _, p := range pr.InlineProperties {
+		fmt.Fprintf(&inline, "%s\n", p.Field())
+	}
+	fmt.Fprint(&inline, "} ")
+	return inline.String()
+}
+
+func inlineListOjbect(pr *Property) string {
+	var inline bytes.Buffer
+	fmt.Fprint(&inline, "[]struct{\n")
+	for _, p := range pr.InlineProperties {
+		fmt.Fprintf(&inline, "%s\n", p.Field())
+	}
+	fmt.Fprint(&inline, "} ")
+	return inline.String()
 }
 
 // Field returns go struct field representation of property
@@ -72,18 +92,16 @@ func (pr *Property) Field() []byte {
 		if len(pr.SecondTypes) == 1 && pr.SecondTypes[0] == "object" {
 			t = fmt.Sprintf("[]%s", varfmt.PublicVarName(pr.refToStructName()))
 		} else if len(pr.InlineProperties) != 0 {
-			var inline bytes.Buffer
-			fmt.Fprint(&inline, "[]struct{\n")
-			for _, p := range pr.InlineProperties {
-				fmt.Fprintf(&inline, "%s\n", p.Field())
-			}
-			fmt.Fprint(&inline, "} ")
-			t = inline.String()
+			t = inlineListOjbect(pr)
 		} else {
 			t = fmt.Sprintf("[]%s", convertScalarProp(pr.SecondTypes[0], pr.Format))
 		}
-	case pr.PropType == PropTypeObject:
+	case pr.PropType == PropTypeObject && pr.refToStructName() != "":
+		// reference to object
 		t = fmt.Sprintf("*%s", varfmt.PublicVarName(pr.refToStructName()))
+	case pr.PropType == PropTypeObject && pr.refToStructName() == "":
+		// inline object
+		t = inlineOjbect(pr)
 	}
 	if !pr.Required {
 		empty = ",omitempty"

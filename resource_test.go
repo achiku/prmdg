@@ -60,26 +60,26 @@ func TestResourceStruct(t *testing.T) {
 	res := Resource{
 		Name:  "task",
 		Title: "Task resource",
-		Properties: []Property{
-			Property{
+		Properties: []*Property{
+			&Property{
 				Name:     "id",
 				Types:    []string{"integer"},
 				Format:   "",
 				Required: true,
 			},
-			Property{
+			&Property{
 				Name:     "name",
 				Types:    []string{"string"},
 				Format:   "",
 				Required: true,
 			},
-			Property{
+			&Property{
 				Name:     "createdAt",
 				Types:    []string{"string"},
 				Format:   "date-time",
 				Required: true,
 			},
-			Property{
+			&Property{
 				Name:     "completedAt",
 				Types:    []string{"string"},
 				Format:   "date-time",

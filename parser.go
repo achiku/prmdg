@@ -57,8 +57,8 @@ func typesToStrings(types schema.PrimitiveTypes) []string {
 	return vals
 }
 
-func sortProperties(props []Property) []Property {
-	pMap := make(map[string]Property)
+func sortProperties(props []*Property) []*Property {
+	pMap := make(map[string]*Property)
 	for _, p := range props {
 		pMap[p.Name] = p
 	}
@@ -68,7 +68,7 @@ func sortProperties(props []Property) []Property {
 	}
 	sort.Strings(names)
 
-	var sorted []Property
+	var sorted []*Property
 	for _, n := range names {
 		sorted = append(sorted, pMap[n])
 	}
@@ -109,6 +109,87 @@ func sortValidator(vals []*jsval.JSVal) []*jsval.JSVal {
 	return sorted
 }
 
+// NewProperty new property
+func NewProperty(name string, tp *schema.Schema, root *schema.Schema) (*Property, error) {
+	// save reference before resolving ref
+	ref := tp.Reference
+	fieldSchema, err := resolveSchema(tp, root)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to resolve, %s", name)
+	}
+	fld := &Property{
+		Name:      name,
+		Format:    string(fieldSchema.Format),
+		Types:     typesToStrings(fieldSchema.Type),
+		Required:  root.IsPropRequired(name),
+		Pattern:   fieldSchema.Pattern,
+		Reference: ref,
+		Schema:    fieldSchema,
+	}
+	switch {
+	case fieldSchema.Type.Contains(schema.ArrayType):
+		// if this field is an array
+		// currently this tool supports only one itme per array field
+		if len(fieldSchema.Items.Schemas) != 1 {
+			return nil, errors.Errorf("array type has to have an item: %s", name)
+		}
+		item := fieldSchema.Items.Schemas[0]
+		tmpItem, err := resolveSchema(item, root)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to resolve: %s", name)
+		}
+		switch {
+		case item.Reference == "" && item.Properties == nil:
+			// no reference, no item properties = primitive type
+			fld.SecondTypes = typesToStrings(item.Type)
+			// log.Printf("no ref, no prop: %s: %s", name, item.Reference)
+		case item.Reference != "" && !tmpItem.Type.Contains(schema.ObjectType):
+			// reference to primitive
+			fld.SecondTypes = typesToStrings(tmpItem.Type)
+			// log.Printf("ref to primitive: %s: %s", name, item.Reference)
+		case item.Reference == "" && item.Properties != nil:
+			// no reference, item properties = inline object
+			// parse properties and create inline fields
+			var inlineFields []*Property
+			for k, prop := range item.Properties {
+				f, err := NewProperty(k, prop, root)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to perse inline object: %s", k)
+				}
+				inlineFields = append(inlineFields, f)
+			}
+			fld.InlineProperties = inlineFields
+			// log.Printf("no ref, inline prop: %s: %s", name, item.Reference)
+		case item.Reference != "" && tmpItem.Type.Contains(schema.ObjectType):
+			// reference to object
+			fld.SecondTypes = []string{"object"}
+			fld.SecondReference = item.Reference
+			// log.Printf("ref to obj: %s: %s", name, item.Reference)
+		}
+		fld.PropType = PropTypeArray
+	case fieldSchema.Type.Contains(schema.ObjectType):
+		// if this field is a object
+		switch {
+		case fieldSchema.Reference == "" && fieldSchema.Properties != nil:
+			// inline object without previous definitions
+			var inlineFields []*Property
+			for k, prop := range fieldSchema.Properties {
+				f, err := NewProperty(k, prop, root)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to perse inline object: %s", k)
+				}
+				inlineFields = append(inlineFields, f)
+			}
+			fld.InlineProperties = inlineFields
+		}
+		fld.PropType = PropTypeObject
+	default:
+		// if this field is a scalar
+		fld.PropType = PropTypeScalar
+	}
+	return fld, nil
+}
+
 // ParseResources parse plain resource
 func (p *Parser) ParseResources() (map[string]Resource, error) {
 	res := make(map[string]Resource)
@@ -120,76 +201,11 @@ func (p *Parser) ParseResources() (map[string]Resource, error) {
 			Schema: df,
 		}
 		// parse resource field
-		var flds []Property
+		var flds []*Property
 		for name, tp := range df.Properties {
-			// save reference before resolving ref
-			ref := tp.Reference
-			fieldSchema, err := resolveSchema(tp, p.schema)
+			fld, err := NewProperty(name, tp, p.schema)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to resolve, %s:%s", id, name)
-			}
-			fld := Property{
-				Name:      name,
-				Format:    string(fieldSchema.Format),
-				Types:     typesToStrings(fieldSchema.Type),
-				Required:  df.IsPropRequired(name),
-				Pattern:   fieldSchema.Pattern,
-				Reference: ref,
-				Schema:    fieldSchema,
-			}
-			switch {
-			case fieldSchema.Type.Contains(schema.ArrayType):
-				// if this field is an array
-				// currently this tool supports only one itme per array field
-				if len(fieldSchema.Items.Schemas) != 1 {
-					return nil, errors.Errorf("array type has to have an item: %s, %s", id, name)
-				}
-				item := fieldSchema.Items.Schemas[0]
-				tmpItem, err := resolveSchema(item, p.schema)
-				if err != nil {
-					return nil, errors.Wrapf(err, "failed to resolve, %s:%s", id, name)
-				}
-				switch {
-				case item.Reference == "" && item.Properties == nil:
-					// no reference, no item properties = primitive type
-					fld.SecondTypes = typesToStrings(item.Type)
-					// log.Printf("no ref, no prop: %s: %s", name, item.Reference)
-				case item.Reference != "" && !tmpItem.Type.Contains(schema.ObjectType):
-					// reference to primitive
-					fld.SecondTypes = typesToStrings(tmpItem.Type)
-					// log.Printf("ref to primitive: %s: %s", name, item.Reference)
-				case item.Reference == "" && item.Properties != nil:
-					// no reference, item properties = inline object
-					// parse properties and create inline fields
-					var inlineFields []Property
-					for k, v := range item.Properties {
-						f := Property{
-							Name:      k,
-							Format:    string(v.Format),
-							Pattern:   v.Pattern,
-							Reference: v.Reference,
-							Types:     typesToStrings(v.Type),
-							Schema:    v,
-							PropType:  PropTypeScalar,
-						}
-						inlineFields = append(inlineFields, f)
-					}
-					fld.InlineProperties = inlineFields
-					// log.Printf("no ref, inline prop: %s: %s", name, item.Reference)
-				case item.Reference != "" && tmpItem.Type.Contains(schema.ObjectType):
-					// reference to object
-					fld.SecondTypes = []string{"object"}
-					fld.SecondReference = item.Reference
-					// log.Printf("ref to obj: %s: %s", name, item.Reference)
-				}
-				fld.PropType = PropTypeArray
-			case fieldSchema.Type.Contains(schema.ObjectType):
-				// if this field is a object
-				fld.PropType = PropTypeObject
-				fld.SecondTypes = []string{name}
-			default:
-				// if this field is a scalar
-				fld.PropType = PropTypeScalar
+				return nil, errors.Wrapf(err, "failed to parse %s", id)
 			}
 			flds = append(flds, fld)
 		}
@@ -222,20 +238,11 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 			}
 			// parse request if exists
 			if e.Schema != nil {
-				var flds []Property
-				for name, props := range e.Schema.Properties {
-					ref := props.Reference
-					sh, err := resolveSchema(props, p.schema)
+				var flds []*Property
+				for name, tp := range e.Schema.Properties {
+					fld, err := NewProperty(name, tp, p.schema)
 					if err != nil {
-						return nil, errors.Wrapf(err, "failed to resolve, %s:%s", id, name)
-					}
-					fld := Property{
-						Name:      name,
-						Types:     typesToStrings(sh.Type),
-						Format:    string(sh.Format),
-						Required:  e.Schema.IsPropRequired(name),
-						Pattern:   sh.Pattern,
-						Reference: ref,
+						return nil, errors.Wrapf(err, "failed to parse %s", id)
 					}
 					flds = append(flds, fld)
 				}
@@ -248,18 +255,11 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 			// parse response if exists
 			if e.TargetSchema != nil {
 				// http://json-schema.org/latest/json-schema-hypermedia.html#rfc.section.5.4
-				var flds []Property
-				for name, props := range e.TargetSchema.Properties {
-					sh, err := resolveSchema(props, p.schema)
+				var flds []*Property
+				for name, tp := range e.TargetSchema.Properties {
+					fld, err := NewProperty(name, tp, p.schema)
 					if err != nil {
-						return nil, errors.Wrapf(err, "failed to resolve, %s:%s", id, name)
-					}
-					fld := Property{
-						Name:     name,
-						Types:    typesToStrings(sh.Type),
-						Format:   string(sh.Format),
-						Required: e.TargetSchema.IsPropRequired(name),
-						Pattern:  sh.Pattern,
+						return nil, errors.Wrapf(err, "failed to parse %s", id)
 					}
 					flds = append(flds, fld)
 				}
