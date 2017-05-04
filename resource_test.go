@@ -3,6 +3,8 @@ package main
 import (
 	"go/format"
 	"testing"
+
+	schema "github.com/lestrrat/go-jsschema"
 )
 
 func TestSimplePropertyField(t *testing.T) {
@@ -13,7 +15,7 @@ func TestSimplePropertyField(t *testing.T) {
 		{
 			Prop: Property{
 				Name:     "name",
-				Types:    []string{"string"},
+				Types:    []schema.PrimitiveType{schema.StringType},
 				Format:   "",
 				Required: true,
 			},
@@ -22,7 +24,7 @@ func TestSimplePropertyField(t *testing.T) {
 		{
 			Prop: Property{
 				Name:     "name",
-				Types:    []string{"string"},
+				Types:    []schema.PrimitiveType{schema.StringType},
 				Format:   "",
 				Required: false,
 			},
@@ -31,7 +33,7 @@ func TestSimplePropertyField(t *testing.T) {
 		{
 			Prop: Property{
 				Name:     "id",
-				Types:    []string{"integer"},
+				Types:    []schema.PrimitiveType{schema.IntegerType},
 				Format:   "",
 				Required: true,
 			},
@@ -40,7 +42,7 @@ func TestSimplePropertyField(t *testing.T) {
 		{
 			Prop: Property{
 				Name:     "createdAt",
-				Types:    []string{"string"},
+				Types:    []schema.PrimitiveType{schema.StringType},
 				Format:   "date-time",
 				Required: true,
 			},
@@ -49,7 +51,11 @@ func TestSimplePropertyField(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		str := c.Prop.Field()
+		str := c.Prop.Field(FormatOption{
+			Schema:    true,
+			UseTitle:  false,
+			Validator: false,
+		})
 		if string(str) != c.Expected {
 			t.Errorf("want %s got %s", c.Expected, str)
 		}
@@ -63,32 +69,32 @@ func TestResourceStruct(t *testing.T) {
 		Properties: []*Property{
 			&Property{
 				Name:     "id",
-				Types:    []string{"integer"},
+				Types:    []schema.PrimitiveType{schema.IntegerType},
 				Format:   "",
 				Required: true,
 			},
 			&Property{
 				Name:     "name",
-				Types:    []string{"string"},
+				Types:    []schema.PrimitiveType{schema.StringType},
 				Format:   "",
 				Required: true,
 			},
 			&Property{
 				Name:     "createdAt",
-				Types:    []string{"string"},
+				Types:    []schema.PrimitiveType{schema.StringType},
 				Format:   "date-time",
 				Required: true,
 			},
 			&Property{
 				Name:     "completedAt",
-				Types:    []string{"string"},
+				Types:    []schema.PrimitiveType{schema.StringType},
 				Format:   "date-time",
 				Required: false,
 			},
 		},
 	}
 
-	b := res.Struct()
+	b := res.Struct(FormatOption{})
 	ss, err := format.Source(b)
 	if err != nil {
 		t.Fatal(err)

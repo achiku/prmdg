@@ -120,7 +120,7 @@ func NewProperty(name string, tp *schema.Schema, root *schema.Schema) (*Property
 	fld := &Property{
 		Name:      name,
 		Format:    string(fieldSchema.Format),
-		Types:     typesToStrings(fieldSchema.Type),
+		Types:     fieldSchema.Type,
 		Required:  root.IsPropRequired(name),
 		Pattern:   fieldSchema.Pattern,
 		Reference: ref,
@@ -141,15 +141,13 @@ func NewProperty(name string, tp *schema.Schema, root *schema.Schema) (*Property
 		switch {
 		case item.Reference == "" && item.Properties == nil:
 			// no reference, no item properties = primitive type
-			fld.SecondTypes = typesToStrings(item.Type)
-			// log.Printf("no ref, no prop: %s: %s", name, item.Reference)
+			fld.SecondTypes = item.Type
 		case item.Reference != "" && !tmpItem.Type.Contains(schema.ObjectType):
-			// reference to primitive
-			fld.SecondTypes = typesToStrings(tmpItem.Type)
-			// log.Printf("ref to primitive: %s: %s", name, item.Reference)
+			// reference to primitive = resolved primitive type
+			fld.SecondTypes = tmpItem.Type
 		case item.Reference == "" && item.Properties != nil:
 			// no reference, item properties = inline object
-			// parse properties and create inline fields
+			// parse properties, and recursively create inline fields
 			var inlineFields []*Property
 			for k, prop := range item.Properties {
 				f, err := NewProperty(k, prop, root)
@@ -159,19 +157,17 @@ func NewProperty(name string, tp *schema.Schema, root *schema.Schema) (*Property
 				inlineFields = append(inlineFields, f)
 			}
 			fld.InlineProperties = inlineFields
-			// log.Printf("no ref, inline prop: %s: %s", name, item.Reference)
 		case item.Reference != "" && tmpItem.Type.Contains(schema.ObjectType):
 			// reference to object
-			fld.SecondTypes = []string{"object"}
+			fld.SecondTypes = []schema.PrimitiveType{schema.ObjectType}
 			fld.SecondReference = item.Reference
-			// log.Printf("ref to obj: %s: %s", name, item.Reference)
 		}
 		fld.PropType = PropTypeArray
 	case fieldSchema.Type.Contains(schema.ObjectType):
 		// if this field is a object
 		switch {
 		case fieldSchema.Reference == "" && fieldSchema.Properties != nil:
-			// inline object without previous definitions
+			// inline object without definitions
 			var inlineFields []*Property
 			for k, prop := range fieldSchema.Properties {
 				f, err := NewProperty(k, prop, root)
@@ -234,6 +230,7 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 			ep := Action{
 				Href:   href,
 				Method: e.Method,
+				Title:  e.Title,
 				Rel:    e.Rel,
 			}
 			// parse request if exists

@@ -29,7 +29,7 @@ func TestParseResources(t *testing.T) {
 	// log.Printf("%v", res)
 	for key, r := range res {
 		t.Logf("%s/%s", key, r.Name)
-		t.Logf("%s", r.Struct())
+		t.Logf("%s", r.Struct(FormatOption{}))
 		// for _, prop := range r.Properties {
 		// 	t.Logf("  %s %s: %s:%s %v",
 		// 		prop.Name, prop.Types, prop.SecondTypes, prop.Reference, prop.SecondReference)
@@ -78,12 +78,12 @@ func TestParseActionLargeJSON(t *testing.T) {
 	}
 	for _, ac := range act {
 		for _, a := range ac {
-			resp, err := format.Source(a.ResponseStruct())
+			resp, err := format.Source(a.ResponseStruct(FormatOption{}))
 			if err != nil {
 				t.Fatal(err)
 			}
 			t.Logf("%s", resp)
-			req, err := format.Source(a.RequestStruct())
+			req, err := format.Source(a.RequestStruct(FormatOption{}))
 			if err != nil {
 				t.Fatal(err)
 			}
