@@ -44,10 +44,47 @@ func main() {
 			app.Errorf("failed to generate struct file: %s", err)
 		}
 	case jsValCmd.FullCommand():
+		if err := generateJsValValidatorFile(pkg, *fp, op); err != nil {
+			app.Errorf("failed to generate jsval validator file: %s", err)
+		}
+	case validatorCmd.FullCommand():
 		if err := generateValidatorFile(pkg, *fp, op); err != nil {
 			app.Errorf("failed to generate validator file: %s", err)
 		}
 	}
+}
+
+func generateValidatorFile(pkg *string, fp string, op *string) error {
+	sc, err := schema.ReadFile(fp)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read %s", fp)
+	}
+	parser := NewParser(sc, *pkg)
+	vals, err := parser.ParseValidators()
+	if err != nil {
+		return err
+	}
+	var src []byte
+	src = append(src, []byte(fmt.Sprintf("package %s\n\n", *pkg))...)
+	ss, err := format.Source(vals.Render())
+	if err != nil {
+		return err
+	}
+	src = append(src, ss...)
+	var out *os.File
+	if *op != "" {
+		out, err = os.Create(*op)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create %s", *op)
+		}
+		defer out.Close()
+	} else {
+		out = os.Stdout
+	}
+	if _, err := out.Write(src); err != nil {
+		return err
+	}
+	return nil
 }
 
 func generateStructFile(pkg *string, fp string, op *string, val bool, useTitle bool) error {
@@ -138,7 +175,7 @@ func generateStructFile(pkg *string, fp string, op *string, val bool, useTitle b
 	return nil
 }
 
-func generateValidatorFile(pkg *string, fp string, op *string) error {
+func generateJsValValidatorFile(pkg *string, fp string, op *string) error {
 	sc, err := schema.ReadFile(fp)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read %s", fp)

@@ -187,8 +187,8 @@ func NewProperty(name string, tp *schema.Schema, df *schema.Schema, root *schema
 }
 
 // ParseValidators parse validator
-func (p *Parser) ParseValidators() ([]Validator, error) {
-	var vals []Validator
+func (p *Parser) ParseValidators() (Validators, error) {
+	var vals Validators
 	for _, df := range p.schema.Definitions {
 		for name, tp := range df.Properties {
 			fs, err := resolveSchema(tp, p.schema)

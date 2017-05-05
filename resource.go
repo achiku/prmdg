@@ -131,7 +131,7 @@ func (pr *Property) Field(op FormatOption) []byte {
 		if pr.Required && pr.Pattern == nil {
 			fmt.Fprint(&src, " validate:\"required\"")
 		} else if pr.Required && pr.Pattern != nil {
-			fmt.Fprintf(&src, " validate:\"required,%s\"", fieldName+"Validator")
+			fmt.Fprintf(&src, " validate:\"required,%s\"", pr.Name+"Validator")
 		}
 	}
 	fmt.Fprint(&src, "`")

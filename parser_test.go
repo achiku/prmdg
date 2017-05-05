@@ -8,8 +8,8 @@ import (
 )
 
 func testNewParser(t *testing.T) *Parser {
-	sc, err := schema.ReadFile("./doc/large-example.json")
-	// sc, err := schema.ReadFile("./doc/schema/schema.json")
+	// sc, err := schema.ReadFile("./doc/large-example.json")
+	sc, err := schema.ReadFile("./doc/schema/schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,11 +44,17 @@ func TestParseValidators(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, v := range vals {
-		t.Logf("%s", v.RegexpConst())
-		t.Logf("%s", v.RegexpVar())
-		t.Logf("%s", v.Validator())
+	// for _, v := range vals {
+	// 	t.Logf("%s", v.RegexpConst())
+	// 	t.Logf("%s", v.RegexpVar())
+	// 	t.Logf("%s", v.ValidatorFunc())
+	// }
+	ss, err := format.Source(vals.Render())
+	if err != nil {
+		t.Errorf("%s", vals.Render())
+		t.Fatal(err)
 	}
+	t.Logf("%s", ss)
 }
 
 func TestParseActions(t *testing.T) {
