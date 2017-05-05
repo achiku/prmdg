@@ -1,10 +1,7 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
 	"net/url"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -40,142 +37,6 @@ func NewParser(sh *schema.Schema, pkgName string) *Parser {
 	}
 }
 
-// Resource plain resource
-type Resource struct {
-	Name       string
-	Title      string
-	Schema     *schema.Schema
-	Properties []Property
-}
-
-// Struct returns struct go representation of resource
-func (rs *Resource) Struct() []byte {
-	name := varfmt.PublicVarName(rs.Name)
-	var src bytes.Buffer
-	fmt.Fprintf(&src, "// %s struct for %s resource\n", name, rs.Name)
-	fmt.Fprintf(&src, "type %s struct {\n", name)
-	for _, p := range rs.Properties {
-		fmt.Fprintf(&src, "%s\n", p.Field())
-	}
-	fmt.Fprint(&src, "}\n\n")
-	return src.Bytes()
-}
-
-// Property resource properties
-type Property struct {
-	Name             string
-	Format           string
-	Types            []string
-	SecondTypes      []string
-	PropType         PropType
-	Required         bool
-	Reference        string
-	References       []string
-	Pattern          *regexp.Regexp
-	Schema           *schema.Schema
-	InlineProperties []Property
-}
-
-func (pr *Property) refToKey() string {
-	return strings.Replace(pr.Reference, "#/definitions/", "", 1)
-}
-
-// Field returns go struct field representation of property
-func (pr *Property) Field() []byte {
-	structName := varfmt.PublicVarName(strings.Replace(pr.Name, "-", "_", -1))
-	// FIXME: need to support multiple types including 'null'
-	// https://github.com/interagent/prmd/blob/master/docs/schemata.md#definitions
-	var (
-		t     string
-		empty string
-	)
-	switch {
-	case pr.PropType == PropTypeScalar && len(pr.Types) == 1:
-		t = convertScalarProp(pr.Types[0], pr.Format)
-	case pr.PropType == PropTypeArray:
-		if pr.SecondTypes[0] == "object" {
-			t = fmt.Sprintf("[]%s", varfmt.PublicVarName(pr.refToKey()))
-		} else {
-			t = fmt.Sprintf("[]%s", convertScalarProp(pr.SecondTypes[0], pr.Format))
-		}
-	case pr.PropType == PropTypeObject:
-		t = fmt.Sprintf("*%s", varfmt.PublicVarName(pr.refToKey()))
-	}
-	if !pr.Required {
-		empty = ",omitempty"
-	}
-
-	var src bytes.Buffer
-	fmt.Fprintf(&src, "%s %s `json:\"%s%s\" schema:\"%s\"`", structName, t, pr.Name, empty, pr.Name)
-	return src.Bytes()
-}
-
-func convertScalarProp(t, f string) string {
-	switch t {
-	case "number":
-		return "float64"
-	case "integer":
-		return "int64"
-	case "boolean":
-		return "bool"
-	case "string":
-		if f == "date-time" {
-			return "time.Time"
-		}
-		return "string"
-	default:
-		return ""
-	}
-}
-
-// Action endpoint
-type Action struct {
-	Href     string
-	Method   string
-	Rel      string
-	Request  *Resource
-	Response *Resource
-}
-
-// RequestStruct request struct
-func (a *Action) RequestStruct() []byte {
-	if a.Request == nil {
-		return []byte("")
-	}
-	name := varfmt.PublicVarName(
-		strings.Replace(a.Response.Name+strings.Title(a.Rel), "-", "_", -1) + "Request")
-
-	var src bytes.Buffer
-	fmt.Fprintf(&src, "// %s struct for %s\n", name, a.Request.Name)
-	fmt.Fprintf(&src, "// %s: %s\n", a.Method, a.Href)
-	fmt.Fprintf(&src, "type %s struct {\n", name)
-	for _, p := range a.Request.Properties {
-		fmt.Fprintf(&src, "%s\n", p.Field())
-	}
-	fmt.Fprint(&src, "}\n\n")
-	return src.Bytes()
-}
-
-// ResponseStruct response struct
-func (a *Action) ResponseStruct() []byte {
-	if a.Response == nil {
-		return []byte("")
-	}
-	name := varfmt.PublicVarName(
-		strings.Replace(a.Response.Name+strings.Title(a.Rel), "-", "_", -1) + "Response")
-	orgName := varfmt.PublicVarName(a.Response.Name)
-
-	var src bytes.Buffer
-	fmt.Fprintf(&src, "// %s struct for %s\n", name, a.Response.Name)
-	fmt.Fprintf(&src, "// %s: %s\n", a.Method, a.Href)
-	if a.Rel == "instances" {
-		fmt.Fprintf(&src, "type %s []%s\n", name, orgName)
-		return src.Bytes()
-	}
-	fmt.Fprintf(&src, "type %s %s\n\n", name, orgName)
-	return src.Bytes()
-}
-
 func resolveSchema(sch *schema.Schema, root *schema.Schema) (*schema.Schema, error) {
 	if sch.IsResolved() {
 		return sch, nil
@@ -196,8 +57,8 @@ func typesToStrings(types schema.PrimitiveTypes) []string {
 	return vals
 }
 
-func sortProperties(props []Property) []Property {
-	pMap := make(map[string]Property)
+func sortProperties(props []*Property) []*Property {
+	pMap := make(map[string]*Property)
 	for _, p := range props {
 		pMap[p.Name] = p
 	}
@@ -207,7 +68,7 @@ func sortProperties(props []Property) []Property {
 	}
 	sort.Strings(names)
 
-	var sorted []Property
+	var sorted []*Property
 	for _, n := range names {
 		sorted = append(sorted, pMap[n])
 	}
@@ -248,6 +109,105 @@ func sortValidator(vals []*jsval.JSVal) []*jsval.JSVal {
 	return sorted
 }
 
+// NewProperty new property
+func NewProperty(name string, tp *schema.Schema, df *schema.Schema, root *schema.Schema) (*Property, error) {
+	// save reference before resolving ref
+	ref := tp.Reference
+	fieldSchema, err := resolveSchema(tp, root)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to resolve, %s", name)
+	}
+	fld := &Property{
+		Name:      name,
+		Format:    string(fieldSchema.Format),
+		Types:     fieldSchema.Type,
+		Required:  df.IsPropRequired(name),
+		Pattern:   fieldSchema.Pattern,
+		Reference: ref,
+		Schema:    fieldSchema,
+	}
+	switch {
+	case fieldSchema.Type.Contains(schema.ArrayType):
+		// if this field is an array
+		// currently this tool supports only one itme per array field
+		if len(fieldSchema.Items.Schemas) != 1 {
+			return nil, errors.Errorf("array type has to have an item: %s", name)
+		}
+		item := fieldSchema.Items.Schemas[0]
+		tmpItem, err := resolveSchema(item, root)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to resolve: %s", name)
+		}
+		switch {
+		case item.Reference == "" && item.Properties == nil:
+			// no reference, no item properties = primitive type
+			fld.SecondTypes = item.Type
+		case item.Reference != "" && !tmpItem.Type.Contains(schema.ObjectType):
+			// reference to primitive = resolved primitive type
+			fld.SecondTypes = tmpItem.Type
+		case item.Reference == "" && item.Properties != nil:
+			// no reference, item properties = inline object
+			// parse properties, and recursively create inline fields
+			var inlineFields []*Property
+			for k, prop := range item.Properties {
+				f, err := NewProperty(k, prop, df, root)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to perse inline object: %s", k)
+				}
+				inlineFields = append(inlineFields, f)
+			}
+			fld.InlineProperties = inlineFields
+		case item.Reference != "" && tmpItem.Type.Contains(schema.ObjectType):
+			// reference to object
+			fld.SecondTypes = []schema.PrimitiveType{schema.ObjectType}
+			fld.SecondReference = item.Reference
+		}
+		fld.PropType = PropTypeArray
+	case fieldSchema.Type.Contains(schema.ObjectType):
+		// if this field is a object
+		switch {
+		case fieldSchema.Reference == "" && fieldSchema.Properties != nil:
+			// inline object without definitions
+			var inlineFields []*Property
+			for k, prop := range fieldSchema.Properties {
+				f, err := NewProperty(k, prop, df, root)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to perse inline object: %s", k)
+				}
+				inlineFields = append(inlineFields, f)
+			}
+			fld.InlineProperties = inlineFields
+		}
+		fld.PropType = PropTypeObject
+	default:
+		// if this field is a scalar
+		fld.PropType = PropTypeScalar
+	}
+	return fld, nil
+}
+
+// ParseValidators parse validator
+func (p *Parser) ParseValidators() (Validators, error) {
+	var vals Validators
+	for _, df := range p.schema.Definitions {
+		for name, tp := range df.Properties {
+			fs, err := resolveSchema(tp, p.schema)
+			if err != nil {
+				return nil, err
+			}
+			if fs.Pattern != nil &&
+				!fs.Type.Contains(schema.ObjectType) && !fs.Type.Contains(schema.ArrayType) {
+				v := Validator{
+					Name:         name,
+					RegexpString: fs.Pattern.String(),
+				}
+				vals = append(vals, v)
+			}
+		}
+	}
+	return vals, nil
+}
+
 // ParseResources parse plain resource
 func (p *Parser) ParseResources() (map[string]Resource, error) {
 	res := make(map[string]Resource)
@@ -259,58 +219,11 @@ func (p *Parser) ParseResources() (map[string]Resource, error) {
 			Schema: df,
 		}
 		// parse resource field
-		var flds []Property
+		var flds []*Property
 		for name, tp := range df.Properties {
-			ref := tp.Reference
-			fieldSchema, err := resolveSchema(tp, p.schema)
+			fld, err := NewProperty(name, tp, df, p.schema)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to resolve, %s:%s", id, name)
-			}
-
-			fld := Property{
-				Name:      name,
-				Format:    string(fieldSchema.Format),
-				Types:     typesToStrings(fieldSchema.Type),
-				Required:  df.IsPropRequired(name),
-				Pattern:   fieldSchema.Pattern,
-				Reference: ref,
-				Schema:    fieldSchema,
-			}
-			if fieldSchema.Items != nil && fieldSchema.Type.Contains(schema.ArrayType) {
-				if len(fieldSchema.Items.Schemas) != 1 {
-					return nil, errors.Errorf("multiple items not supported: %s, %s", id, name)
-				}
-				ss := fieldSchema.Items.Schemas[0]
-				if ss.Reference == "" {
-					var ff []Property
-					for k, v := range ss.Properties {
-						f := Property{
-							Name:      k,
-							Format:    string(v.Format),
-							Pattern:   v.Pattern,
-							Reference: v.Reference,
-							Types:     typesToStrings(v.Type),
-							Schema:    v,
-							PropType:  PropTypeScalar,
-						}
-						ff = append(ff, f)
-					}
-					fld.InlineProperties = ff
-					fld.PropType = PropTypeArray
-					fld.Reference = ss.Reference
-				} else {
-					itemSchema, err := resolveSchema(fieldSchema.Items.Schemas[0], p.schema)
-					if err != nil {
-						return nil, errors.Wrapf(err, "failed to resolve, %s:%s", id, name)
-					}
-					fld.PropType = PropTypeArray
-					fld.SecondTypes = typesToStrings(itemSchema.Type)
-					fld.Reference = ss.Reference
-				}
-			} else if fieldSchema.Type.Contains(schema.ObjectType) {
-				fld.PropType = PropTypeObject
-			} else {
-				fld.PropType = PropTypeScalar
+				return nil, errors.Wrapf(err, "failed to parse %s", id)
 			}
 			flds = append(flds, fld)
 		}
@@ -339,24 +252,16 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 			ep := Action{
 				Href:   href,
 				Method: e.Method,
+				Title:  e.Title,
 				Rel:    e.Rel,
 			}
 			// parse request if exists
 			if e.Schema != nil {
-				var flds []Property
-				for name, props := range e.Schema.Properties {
-					ref := props.Reference
-					sh, err := resolveSchema(props, p.schema)
+				var flds []*Property
+				for name, tp := range e.Schema.Properties {
+					fld, err := NewProperty(name, tp, df, p.schema)
 					if err != nil {
-						return nil, errors.Wrapf(err, "failed to resolve, %s:%s", id, name)
-					}
-					fld := Property{
-						Name:      name,
-						Types:     typesToStrings(sh.Type),
-						Format:    string(sh.Format),
-						Required:  e.Schema.IsPropRequired(name),
-						Pattern:   sh.Pattern,
-						Reference: ref,
+						return nil, errors.Wrapf(err, "failed to parse %s", id)
 					}
 					flds = append(flds, fld)
 				}
@@ -369,18 +274,11 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 			// parse response if exists
 			if e.TargetSchema != nil {
 				// http://json-schema.org/latest/json-schema-hypermedia.html#rfc.section.5.4
-				var flds []Property
-				for name, props := range e.TargetSchema.Properties {
-					sh, err := resolveSchema(props, p.schema)
+				var flds []*Property
+				for name, tp := range e.TargetSchema.Properties {
+					fld, err := NewProperty(name, tp, df, p.schema)
 					if err != nil {
-						return nil, errors.Wrapf(err, "failed to resolve, %s:%s", id, name)
-					}
-					fld := Property{
-						Name:     name,
-						Types:    typesToStrings(sh.Type),
-						Format:   string(sh.Format),
-						Required: e.TargetSchema.IsPropRequired(name),
-						Pattern:  sh.Pattern,
+						return nil, errors.Wrapf(err, "failed to parse %s", id)
 					}
 					flds = append(flds, fld)
 				}
@@ -404,8 +302,8 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 	return eptsMap, nil
 }
 
-// ParseValidators parse validator
-func (p *Parser) ParseValidators() ([]*jsval.JSVal, error) {
+// ParseJsValValidators parse validator
+func (p *Parser) ParseJsValValidators() ([]*jsval.JSVal, error) {
 	var validators []*jsval.JSVal
 	for id, df := range p.schema.Definitions {
 		// use json hyper schema to parse links

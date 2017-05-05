@@ -1,16 +1,14 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
 	"go/format"
 	"testing"
 
 	schema "github.com/lestrrat/go-jsschema"
-	jsval "github.com/lestrrat/go-jsval"
 )
 
 func testNewParser(t *testing.T) *Parser {
+	// sc, err := schema.ReadFile("./doc/large-example.json")
 	sc, err := schema.ReadFile("./doc/schema/schema.json")
 	if err != nil {
 		t.Fatal(err)
@@ -22,28 +20,41 @@ func testNewParser(t *testing.T) *Parser {
 }
 
 func TestParseResources(t *testing.T) {
-	sc, err := schema.ReadFile("./doc/large-example.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	parser := &Parser{
-		schema:  sc,
-		pkgName: "model",
-	}
-	_, err = parser.ParseResources()
+	parser := testNewParser(t)
+	res, err := parser.ParseResources()
 	if err != nil {
 		t.Fatal(err)
 	}
 	// pretty.Print(res)
 	// log.Printf("%v", res)
-	// for key, r := range res {
-	// 	t.Logf("%s/%s", key, r.Name)
-	// 	for _, prop := range r.Properties {
-	// 		if len(prop.References) > 2 {
-	// 			t.Logf("  %s %s: %s", prop.Name, prop.Types, prop.References)
-	// 		}
-	// 	}
+	for key, r := range res {
+		t.Logf("%s/%s", key, r.Name)
+		t.Logf("%s", r.Struct(FormatOption{}))
+		// for _, prop := range r.Properties {
+		// 	t.Logf("  %s %s: %s:%s %v",
+		// 		prop.Name, prop.Types, prop.SecondTypes, prop.Reference, prop.SecondReference)
+		// }
+	}
+	// t.Logf("%v", res)
+}
+
+func TestParseValidators(t *testing.T) {
+	parser := testNewParser(t)
+	vals, err := parser.ParseValidators()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// for _, v := range vals {
+	// 	t.Logf("%s", v.RegexpConst())
+	// 	t.Logf("%s", v.RegexpVar())
+	// 	t.Logf("%s", v.ValidatorFunc())
 	// }
+	ss, err := format.Source(vals.Render())
+	if err != nil {
+		t.Errorf("%s", vals.Render())
+		t.Fatal(err)
+	}
+	t.Logf("%s", ss)
 }
 
 func TestParseActions(t *testing.T) {
@@ -66,23 +77,6 @@ func TestParseActions(t *testing.T) {
 	}
 }
 
-func TestParseValidator(t *testing.T) {
-	parser := testNewParser(t)
-	vl, err := parser.ParseValidators()
-	if err != nil {
-		t.Fatal(err)
-	}
-	g := jsval.NewGenerator()
-	var src bytes.Buffer
-	fmt.Fprintln(&src, "import \"github.com/lestrrat/go-jsval\"")
-	g.Process(&src, vl...)
-	b, err := format.Source(src.Bytes())
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("%s", b)
-}
-
 func TestParseActionLargeJSON(t *testing.T) {
 	sc, err := schema.ReadFile("./doc/schema/schema.json")
 	if err != nil {
@@ -103,107 +97,16 @@ func TestParseActionLargeJSON(t *testing.T) {
 	}
 	for _, ac := range act {
 		for _, a := range ac {
-			resp, err := format.Source(a.ResponseStruct())
+			resp, err := format.Source(a.ResponseStruct(FormatOption{}))
 			if err != nil {
 				t.Fatal(err)
 			}
 			t.Logf("%s", resp)
-			req, err := format.Source(a.RequestStruct())
+			req, err := format.Source(a.RequestStruct(FormatOption{}))
 			if err != nil {
 				t.Fatal(err)
 			}
 			t.Logf("%s", req)
 		}
 	}
-}
-
-func TestPropertyField(t *testing.T) {
-	cases := []struct {
-		Prop     Property
-		Expected string
-	}{
-		{
-			Prop: Property{
-				Name:     "name",
-				Types:    []string{"string"},
-				Format:   "",
-				Required: true,
-			},
-			Expected: "Name string `json:\"name\" schema:\"name\"`",
-		},
-		{
-			Prop: Property{
-				Name:     "name",
-				Types:    []string{"string"},
-				Format:   "",
-				Required: false,
-			},
-			Expected: "Name string `json:\"name,omitempty\" schema:\"name\"`",
-		},
-		{
-			Prop: Property{
-				Name:     "id",
-				Types:    []string{"integer"},
-				Format:   "",
-				Required: true,
-			},
-			Expected: "ID int64 `json:\"id\" schema:\"id\"`",
-		},
-		{
-			Prop: Property{
-				Name:     "createdAt",
-				Types:    []string{"string"},
-				Format:   "date-time",
-				Required: true,
-			},
-			Expected: "CreatedAt time.Time `json:\"createdAt\" schema:\"createdAt\"`",
-		},
-	}
-
-	for _, c := range cases {
-		str := c.Prop.Field()
-		if string(str) != c.Expected {
-			t.Errorf("want %s got %s", c.Expected, str)
-		}
-	}
-}
-
-func TestResourceStruct(t *testing.T) {
-	res := Resource{
-		Name:  "task",
-		Title: "Task resource",
-		Properties: []Property{
-			Property{
-				Name:     "id",
-				Types:    []string{"integer"},
-				Format:   "",
-				Required: true,
-			},
-			Property{
-				Name:     "name",
-				Types:    []string{"string"},
-				Format:   "",
-				Required: true,
-			},
-			Property{
-				Name:     "createdAt",
-				Types:    []string{"string"},
-				Format:   "date-time",
-				Required: true,
-			},
-			Property{
-				Name:     "completedAt",
-				Types:    []string{"string"},
-				Format:   "date-time",
-				Required: false,
-			},
-		},
-	}
-
-	b := res.Struct()
-	ss, err := format.Source(b)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("%s", ss)
 }

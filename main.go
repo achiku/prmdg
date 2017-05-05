@@ -24,8 +24,15 @@ var (
 	fp  = app.Flag("file", "path JSON Schema").Required().Short('f').String()
 	op  = app.Flag("output", "path to Go output file").Short('o').String()
 
-	structCmd    = app.Command("struct", "generate struct file")
-	validatorCmd = app.Command("validator", "generate validator file")
+	structCmd = app.Command("struct", "generate struct file")
+	jsValCmd  = app.Command(
+		"jsval", "generate validator file using github.com/lestrrat/go-jsval")
+	validatorCmd = app.Command(
+		"validator", "generate validator file using github.com/go-playground/validator")
+
+	scValidator = structCmd.Flag("validate-tag", "add `validate` tag to struct").Bool()
+	scUseTitle  = structCmd.Flag("use-title", "use title tag in request/response struct name").Bool()
+	scNullable  = structCmd.Flag("nullable", "use github.com/guregu/null for not required value").Bool()
 )
 
 func main() {
@@ -33,8 +40,12 @@ func main() {
 
 	switch cmd {
 	case structCmd.FullCommand():
-		if err := generateStructFile(pkg, *fp, op); err != nil {
+		if err := generateStructFile(pkg, *fp, op, *scValidator, *scUseTitle); err != nil {
 			app.Errorf("failed to generate struct file: %s", err)
+		}
+	case jsValCmd.FullCommand():
+		if err := generateJsValValidatorFile(pkg, *fp, op); err != nil {
+			app.Errorf("failed to generate jsval validator file: %s", err)
 		}
 	case validatorCmd.FullCommand():
 		if err := generateValidatorFile(pkg, *fp, op); err != nil {
@@ -43,7 +54,40 @@ func main() {
 	}
 }
 
-func generateStructFile(pkg *string, fp string, op *string) error {
+func generateValidatorFile(pkg *string, fp string, op *string) error {
+	sc, err := schema.ReadFile(fp)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read %s", fp)
+	}
+	parser := NewParser(sc, *pkg)
+	vals, err := parser.ParseValidators()
+	if err != nil {
+		return err
+	}
+	var src []byte
+	src = append(src, []byte(fmt.Sprintf("package %s\n\n", *pkg))...)
+	ss, err := format.Source(vals.Render())
+	if err != nil {
+		return err
+	}
+	src = append(src, ss...)
+	var out *os.File
+	if *op != "" {
+		out, err = os.Create(*op)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create %s", *op)
+		}
+		defer out.Close()
+	} else {
+		out = os.Stdout
+	}
+	if _, err := out.Write(src); err != nil {
+		return err
+	}
+	return nil
+}
+
+func generateStructFile(pkg *string, fp string, op *string, val bool, useTitle bool) error {
 	sc, err := schema.ReadFile(fp)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read %s", fp)
@@ -65,10 +109,15 @@ func generateStructFile(pkg *string, fp string, op *string) error {
 	for key := range resources {
 		resKeys = append(resKeys, key)
 	}
+	stOpt := FormatOption{
+		Validator: val,
+		Schema:    false,
+		UseTitle:  useTitle,
+	}
 	sort.Strings(resKeys)
 	for _, k := range resKeys {
 		res := resources[k]
-		ss, err := format.Source(res.Struct())
+		ss, err := format.Source(res.Struct(stOpt))
 		if err != nil {
 			return errors.Wrapf(err, "failed to format resource: %s: %s", res.Name, res.Title)
 		}
@@ -83,13 +132,26 @@ func generateStructFile(pkg *string, fp string, op *string) error {
 	for _, k := range linkKeys {
 		actions := links[k]
 		for _, action := range actions {
-			req, err := format.Source(action.RequestStruct())
+			var reqOpt FormatOption
+			if action.Method == "GET" {
+				reqOpt = FormatOption{
+					Validator: val,
+					Schema:    true,
+					UseTitle:  useTitle,
+				}
+			} else {
+				reqOpt = FormatOption{
+					Validator: val,
+					Schema:    false,
+					UseTitle:  useTitle,
+				}
+			}
+			req, err := format.Source(action.RequestStruct(reqOpt))
 			if err != nil {
 				return errors.Wrapf(err, "failed to format request struct: %s, %s", k, action.Href)
 			}
 			src = append(src, req...)
-
-			resp, err := format.Source(action.ResponseStruct())
+			resp, err := format.Source(action.ResponseStruct(reqOpt))
 			if err != nil {
 				return errors.Wrapf(err, "failed to format response struct: %s, %s", k, action.Href)
 			}
@@ -113,13 +175,13 @@ func generateStructFile(pkg *string, fp string, op *string) error {
 	return nil
 }
 
-func generateValidatorFile(pkg *string, fp string, op *string) error {
+func generateJsValValidatorFile(pkg *string, fp string, op *string) error {
 	sc, err := schema.ReadFile(fp)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read %s", fp)
 	}
 	parser := NewParser(sc, *pkg)
-	validators, err := parser.ParseValidators()
+	validators, err := parser.ParseJsValValidators()
 	if err != nil {
 		return err
 	}
