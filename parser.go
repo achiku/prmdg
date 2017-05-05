@@ -110,7 +110,7 @@ func sortValidator(vals []*jsval.JSVal) []*jsval.JSVal {
 }
 
 // NewProperty new property
-func NewProperty(name string, tp *schema.Schema, root *schema.Schema) (*Property, error) {
+func NewProperty(name string, tp *schema.Schema, df *schema.Schema, root *schema.Schema) (*Property, error) {
 	// save reference before resolving ref
 	ref := tp.Reference
 	fieldSchema, err := resolveSchema(tp, root)
@@ -121,7 +121,7 @@ func NewProperty(name string, tp *schema.Schema, root *schema.Schema) (*Property
 		Name:      name,
 		Format:    string(fieldSchema.Format),
 		Types:     fieldSchema.Type,
-		Required:  root.IsPropRequired(name),
+		Required:  df.IsPropRequired(name),
 		Pattern:   fieldSchema.Pattern,
 		Reference: ref,
 		Schema:    fieldSchema,
@@ -150,7 +150,7 @@ func NewProperty(name string, tp *schema.Schema, root *schema.Schema) (*Property
 			// parse properties, and recursively create inline fields
 			var inlineFields []*Property
 			for k, prop := range item.Properties {
-				f, err := NewProperty(k, prop, root)
+				f, err := NewProperty(k, prop, df, root)
 				if err != nil {
 					return nil, errors.Wrapf(err, "failed to perse inline object: %s", k)
 				}
@@ -170,7 +170,7 @@ func NewProperty(name string, tp *schema.Schema, root *schema.Schema) (*Property
 			// inline object without definitions
 			var inlineFields []*Property
 			for k, prop := range fieldSchema.Properties {
-				f, err := NewProperty(k, prop, root)
+				f, err := NewProperty(k, prop, df, root)
 				if err != nil {
 					return nil, errors.Wrapf(err, "failed to perse inline object: %s", k)
 				}
@@ -199,7 +199,7 @@ func (p *Parser) ParseResources() (map[string]Resource, error) {
 		// parse resource field
 		var flds []*Property
 		for name, tp := range df.Properties {
-			fld, err := NewProperty(name, tp, p.schema)
+			fld, err := NewProperty(name, tp, df, p.schema)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to parse %s", id)
 			}
@@ -237,7 +237,7 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 			if e.Schema != nil {
 				var flds []*Property
 				for name, tp := range e.Schema.Properties {
-					fld, err := NewProperty(name, tp, p.schema)
+					fld, err := NewProperty(name, tp, df, p.schema)
 					if err != nil {
 						return nil, errors.Wrapf(err, "failed to parse %s", id)
 					}
@@ -254,7 +254,7 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 				// http://json-schema.org/latest/json-schema-hypermedia.html#rfc.section.5.4
 				var flds []*Property
 				for name, tp := range e.TargetSchema.Properties {
-					fld, err := NewProperty(name, tp, p.schema)
+					fld, err := NewProperty(name, tp, df, p.schema)
 					if err != nil {
 						return nil, errors.Wrapf(err, "failed to parse %s", id)
 					}

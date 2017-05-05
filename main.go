@@ -31,7 +31,8 @@ var (
 		"validator", "generate validator file using github.com/go-playground/validator")
 
 	scValidator = structCmd.Flag("validate-tag", "add `validate` tag to struct").Bool()
-	scUseTitle  = structCmd.Flag("title", "use title tag in request/response struct name").Bool()
+	scUseTitle  = structCmd.Flag("use-title", "use title tag in request/response struct name").Bool()
+	scNullable  = structCmd.Flag("nullable", "use github.com/guregu/null for not required value").Bool()
 )
 
 func main() {
