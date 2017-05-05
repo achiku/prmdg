@@ -53,15 +53,20 @@ type Property struct {
 	Schema           *schema.Schema
 }
 
+func normalize(n string) string {
+	return strings.Replace(
+		strings.Replace(n, "-", "_", -1), " ", "_", -1)
+}
+
 func (pr *Property) refToStructName() string {
-	// FIXME: naieve
+	// FIXME: too naieve
 	var ref string
 	if pr.SecondReference != "" {
 		ref = pr.SecondReference
 	} else {
 		ref = pr.Reference
 	}
-	return strings.Replace(strings.Replace(ref, "#/definitions/", "", 1), "-", "_", -1)
+	return normalize(strings.Replace(ref, "#/definitions/", "", 1))
 }
 
 func (pr *Property) inlineOjbect(op FormatOption) string {
@@ -86,7 +91,7 @@ func (pr *Property) inlineListOjbect(op FormatOption) string {
 
 // Field returns go struct field representation of property
 func (pr *Property) Field(op FormatOption) []byte {
-	fieldName := varfmt.PublicVarName(strings.Replace(pr.Name, "-", "_", -1))
+	fieldName := varfmt.PublicVarName(normalize(pr.Name))
 	// FIXME: need to support multiple types including 'null'
 	// https://github.com/interagent/prmd/blob/master/docs/schemata.md#definitions
 	var (
@@ -98,10 +103,13 @@ func (pr *Property) Field(op FormatOption) []byte {
 		t = convertScalarProp(pr.Types, pr.Format)
 	case pr.PropType == PropTypeArray:
 		if len(pr.SecondTypes) == 1 && pr.SecondTypes.Contains(schema.ObjectType) {
-			t = fmt.Sprintf("[]%s", varfmt.PublicVarName(pr.refToStructName()))
+			// referecnce to object
+			t = fmt.Sprintf("[]%s", varfmt.PublicVarName(normalize(pr.refToStructName())))
 		} else if len(pr.InlineProperties) != 0 {
+			// inline list object
 			t = pr.inlineListOjbect(op)
 		} else {
+			// primitive types
 			t = fmt.Sprintf("[]%s", convertScalarProp(pr.SecondTypes, pr.Format))
 		}
 	case pr.PropType == PropTypeObject && pr.refToStructName() != "":
@@ -164,8 +172,7 @@ func (a *Action) RequestStruct(op FormatOption) []byte {
 		n = a.Rel
 	}
 	name := varfmt.PublicVarName(
-		strings.Replace(
-			strings.Replace(a.Response.Name+strings.Title(n), "-", "_", -1)+"Request", " ", "_", -1))
+		normalize(a.Response.Name+strings.Title(n)) + "Request")
 
 	var src bytes.Buffer
 	fmt.Fprintf(&src, "// %s struct for %s\n", name, a.Request.Name)
@@ -190,9 +197,8 @@ func (a *Action) ResponseStruct(op FormatOption) []byte {
 		n = a.Rel
 	}
 	name := varfmt.PublicVarName(
-		strings.Replace(
-			strings.Replace(a.Response.Name+strings.Title(n), "-", "_", -1)+"Response", " ", "_", -1))
-	orgName := varfmt.PublicVarName(strings.Replace(a.Response.Name, "-", "_", -1))
+		normalize(a.Response.Name+strings.Title(n)) + "Response")
+	orgName := varfmt.PublicVarName(normalize(a.Response.Name))
 
 	var src bytes.Buffer
 	fmt.Fprintf(&src, "// %s struct for %s\n", name, a.Response.Name)
