@@ -186,6 +186,28 @@ func NewProperty(name string, tp *schema.Schema, df *schema.Schema, root *schema
 	return fld, nil
 }
 
+// ParseValidators parse validator
+func (p *Parser) ParseValidators() ([]Validator, error) {
+	var vals []Validator
+	for _, df := range p.schema.Definitions {
+		for name, tp := range df.Properties {
+			fs, err := resolveSchema(tp, p.schema)
+			if err != nil {
+				return nil, err
+			}
+			if fs.Pattern != nil &&
+				!fs.Type.Contains(schema.ObjectType) && !fs.Type.Contains(schema.ArrayType) {
+				v := Validator{
+					Name:         name,
+					RegexpString: fs.Pattern.String(),
+				}
+				vals = append(vals, v)
+			}
+		}
+	}
+	return vals, nil
+}
+
 // ParseResources parse plain resource
 func (p *Parser) ParseResources() (map[string]Resource, error) {
 	res := make(map[string]Resource)
@@ -280,8 +302,8 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 	return eptsMap, nil
 }
 
-// ParseValidators parse validator
-func (p *Parser) ParseValidators() ([]*jsval.JSVal, error) {
+// ParseJsValValidators parse validator
+func (p *Parser) ParseJsValValidators() ([]*jsval.JSVal, error) {
 	var validators []*jsval.JSVal
 	for id, df := range p.schema.Definitions {
 		// use json hyper schema to parse links

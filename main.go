@@ -144,7 +144,7 @@ func generateValidatorFile(pkg *string, fp string, op *string) error {
 		return errors.Wrapf(err, "failed to read %s", fp)
 	}
 	parser := NewParser(sc, *pkg)
-	validators, err := parser.ParseValidators()
+	validators, err := parser.ParseJsValValidators()
 	if err != nil {
 		return err
 	}
