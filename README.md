@@ -32,9 +32,13 @@ Commands:
   help [<command>...]
     Show help.
 
-  struct
+  struct [<flags>]
     generate struct file
 
+  jsval
+    generate validator file using github.com/lestrrat/go-jsval
+
   validator
-    generate validator file
+    generate validator file using github.com/go-playground/validator
+
 ```

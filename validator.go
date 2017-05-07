@@ -9,12 +9,13 @@ import (
 )
 
 // Validators validators
-type Validators []Validator
+type Validators map[string]Validator
 
 // Render rendor validators
 func (vs Validators) Render() []byte {
 	var src bytes.Buffer
 	// constants
+	fmt.Fprint(&src, "// regexp string constants\n")
 	fmt.Fprint(&src, "const (\n")
 	for _, v := range vs {
 		fmt.Fprintf(&src, "%s\n", v.RegexpConst())
@@ -22,11 +23,15 @@ func (vs Validators) Render() []byte {
 	fmt.Fprint(&src, ")\n")
 
 	// vars
+	fmt.Fprint(&src, "// regexp objects\n")
 	fmt.Fprint(&src, "var (\n")
 	for _, v := range vs {
 		fmt.Fprintf(&src, "%s\n", v.RegexpVar())
 	}
 	fmt.Fprint(&src, ")\n")
+
+	fmt.Fprint(&src, "// use a single instance of Validate, it caches struct info\n")
+	fmt.Fprint(&src, "var validate *validator.Validate\n")
 
 	// function definitions
 	for _, v := range vs {
@@ -35,6 +40,7 @@ func (vs Validators) Render() []byte {
 
 	// register validation functions
 	fmt.Fprint(&src, "func init() {\n")
+	fmt.Fprint(&src, "validate = validator.New()\n")
 	for _, v := range vs {
 		fmt.Fprintf(&src, "%s\n", v.RegisterFunc())
 	}
@@ -50,12 +56,12 @@ type Validator struct {
 
 // RegexpConstName const name
 func (val Validator) RegexpConstName() string {
-	return val.Name + "RegexString"
+	return varfmt.PublicVarName(val.Name) + "RegexString"
 }
 
 // RegexpVarName var regexp name
 func (val Validator) RegexpVarName() string {
-	return val.Name + "Regex"
+	return varfmt.PublicVarName(val.Name) + "Regex"
 }
 
 // ValidateFuncName validator func name
@@ -87,9 +93,6 @@ func (val Validator) ValidatorFunc() string {
 }
 
 // RegisterFunc register validator
-//	if err := validate.RegisterValidation("userPhonenumber", userPhonenumber); err != nil {
-//		t.Fatal(err)
-//	}
 func (val Validator) RegisterFunc() string {
 	// ignore errors since it always succeeds
 	tmpl, _ := template.New("").Parse(`
