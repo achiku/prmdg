@@ -23,6 +23,7 @@ type FormatOption struct {
 	Validator bool
 	Schema    bool
 	UseTitle  bool
+	UseNull   bool
 }
 
 // Struct returns struct go representation of resource
@@ -59,7 +60,7 @@ func normalize(n string) string {
 }
 
 func (pr *Property) refToStructName() string {
-	// FIXME: too naieve
+	// FIXME: too naieve. use js-pointer.
 	var ref string
 	if pr.SecondReference != "" {
 		ref = pr.SecondReference
@@ -98,7 +99,7 @@ func (pr *Property) Field(op FormatOption) []byte {
 	)
 	switch {
 	case pr.PropType == PropTypeScalar:
-		t = pr.ScalarType()
+		t = pr.ScalarType(op)
 	case pr.PropType == PropTypeArray:
 		if len(pr.SecondTypes) == 1 && pr.SecondTypes.Contains(schema.ObjectType) {
 			// referecnce to object
@@ -108,7 +109,7 @@ func (pr *Property) Field(op FormatOption) []byte {
 			t = pr.inlineListOjbect(op)
 		} else {
 			// an array of primitive types
-			t = fmt.Sprintf("[]%s", pr.ScalarType())
+			t = fmt.Sprintf("[]%s", pr.ScalarType(op))
 		}
 	case pr.PropType == PropTypeObject && pr.refToStructName() != "":
 		// reference to object
@@ -139,14 +140,47 @@ func (pr *Property) Field(op FormatOption) []byte {
 }
 
 // ScalarType returns go scalar type
-func (pr *Property) ScalarType() string {
-	// FIXME: need to support multiple types including 'null'
-	// https://github.com/interagent/prmd/blob/master/docs/schemata.md#definitions
+func (pr *Property) ScalarType(op FormatOption) string {
 	var types schema.PrimitiveTypes
 	if pr.Types.Contains(schema.ArrayType) {
 		types = pr.SecondTypes
 	} else {
 		types = pr.Types
+	}
+	if op.UseNull {
+		if types.Contains(schema.NullType) || !pr.Required {
+			switch {
+			case types.Contains(schema.NumberType):
+				return "null.Float"
+			case types.Contains(schema.IntegerType):
+				return "null.Int"
+			case types.Contains(schema.BooleanType):
+				return "bool"
+			case types.Contains(schema.StringType):
+				if pr.Format == "date-time" {
+					return "null.Time"
+				}
+				return "null.String"
+			default:
+				return ""
+			}
+		} else {
+			switch {
+			case types.Contains(schema.NumberType):
+				return "float64"
+			case types.Contains(schema.IntegerType):
+				return "int64"
+			case types.Contains(schema.BooleanType):
+				return "bool"
+			case types.Contains(schema.StringType):
+				if pr.Format == "date-time" {
+					return "time.Time"
+				}
+				return "string"
+			default:
+				return ""
+			}
+		}
 	}
 	switch {
 	case types.Contains(schema.NumberType):

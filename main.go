@@ -33,7 +33,7 @@ var (
 
 	scValidator = structCmd.Flag("validate-tag", "add `validate` tag to struct").Bool()
 	scUseTitle  = structCmd.Flag("use-title", "use title tag in request/response struct name").Bool()
-	scNullable  = structCmd.Flag("nullable", "use github.com/guregu/null for not required value").Bool()
+	scNullable  = structCmd.Flag("nullable", "use github.com/guregu/null for null value").Bool()
 )
 
 func main() {
@@ -41,7 +41,7 @@ func main() {
 
 	switch cmd {
 	case structCmd.FullCommand():
-		if err := generateStructFile(pkg, *fp, op, *scValidator, *scUseTitle); err != nil {
+		if err := generateStructFile(pkg, *fp, op, *scValidator, *scUseTitle, *scNullable); err != nil {
 			app.Errorf("failed to generate struct file: %s", err)
 		}
 	case jsValCmd.FullCommand():
@@ -94,7 +94,7 @@ func generateValidatorFile(pkg *string, fp string, op *string) error {
 	return nil
 }
 
-func generateStructFile(pkg *string, fp string, op *string, val bool, useTitle bool) error {
+func generateStructFile(pkg *string, fp string, op *string, val, useTitle, nullable bool) error {
 	sc, err := schema.ReadFile(fp)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read %s", fp)
@@ -120,6 +120,7 @@ func generateStructFile(pkg *string, fp string, op *string, val bool, useTitle b
 		Validator: val,
 		Schema:    false,
 		UseTitle:  useTitle,
+		UseNull:   nullable,
 	}
 	sort.Strings(resKeys)
 	for _, k := range resKeys {
@@ -145,12 +146,14 @@ func generateStructFile(pkg *string, fp string, op *string, val bool, useTitle b
 					Validator: val,
 					Schema:    true,
 					UseTitle:  useTitle,
+					UseNull:   nullable,
 				}
 			} else {
 				reqOpt = FormatOption{
 					Validator: val,
 					Schema:    false,
 					UseTitle:  useTitle,
+					UseNull:   nullable,
 				}
 			}
 			req, err := format.Source(action.RequestStruct(reqOpt))
