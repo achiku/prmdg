@@ -42,3 +42,50 @@ Commands:
     generate validator file using github.com/go-playground/validator
 
 ```
+
+## Generating struct from JSON Hyper Schema
+
+```
+usage: prmdg struct [<flags>]
+
+generate struct file
+
+Flags:
+      --help            Show context-sensitive help (also try --help-long and --help-man).
+  -p, --package="main"  package name for Go file
+  -f, --file=FILE       path JSON Schema
+  -o, --output=OUTPUT   path to Go output file
+      --validate-tag    add `validate` tag to struct
+      --use-title       use title tag in request/response struct name
+      --nullable        use github.com/guregu/null for null value
+```
+
+
+## Generating validator from JSON Hyper Schema
+
+```
+usage: prmdg jsval
+
+generate validator file using github.com/lestrrat/go-jsval
+
+Flags:
+      --help            Show context-sensitive help (also try --help-long and --help-man).
+  -p, --package="main"  package name for Go file
+  -f, --file=FILE       path JSON Schema
+  -o, --output=OUTPUT   path to Go output file
+
+```
+
+
+```
+usage: prmdg validator
+
+generate validator file using github.com/go-playground/validator
+
+Flags:
+      --help            Show context-sensitive help (also try --help-long and --help-man).
+  -p, --package="main"  package name for Go file
+  -f, --file=FILE       path JSON Schema
+  -o, --output=OUTPUT   path to Go output file
+
+```
