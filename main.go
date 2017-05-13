@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/format"
 	"os"
+	"os/exec"
 	"sort"
 
 	schema "github.com/lestrrat/go-jsschema"
@@ -78,11 +79,17 @@ func generateValidatorFile(pkg *string, fp string, op *string) error {
 			return errors.Wrapf(err, "failed to create %s", *op)
 		}
 		defer out.Close()
+		if _, err := out.Write(src); err != nil {
+			return err
+		}
+		params := []string{"-w", *op}
+		if err := exec.Command("goimports", params...).Run(); err != nil {
+			return err
+		}
 	} else {
-		out = os.Stdout
-	}
-	if _, err := out.Write(src); err != nil {
-		return err
+		if _, err := os.Stdout.Write(src); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -166,11 +173,17 @@ func generateStructFile(pkg *string, fp string, op *string, val bool, useTitle b
 			return errors.Wrapf(err, "failed to create %s", *op)
 		}
 		defer out.Close()
+		if _, err := out.Write(src); err != nil {
+			return err
+		}
+		params := []string{"-w", *op}
+		if err := exec.Command("goimports", params...).Run(); err != nil {
+			return err
+		}
 	} else {
-		out = os.Stdout
-	}
-	if _, err := out.Write(src); err != nil {
-		return err
+		if _, err := os.Stdout.Write(src); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -200,11 +213,17 @@ func generateJsValValidatorFile(pkg *string, fp string, op *string) error {
 			return errors.Wrapf(err, "failed to create %s", *op)
 		}
 		defer out.Close()
+		if _, err := out.Write(src.Bytes()); err != nil {
+			return err
+		}
+		params := []string{"-w", *op}
+		if err := exec.Command("goimports", params...).Run(); err != nil {
+			return err
+		}
 	} else {
-		out = os.Stdout
-	}
-	if _, err := out.Write(src.Bytes()); err != nil {
-		return err
+		if _, err := os.Stdout.Write(src.Bytes()); err != nil {
+			return err
+		}
 	}
 	return nil
 }
