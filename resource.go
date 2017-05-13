@@ -27,7 +27,7 @@ type FormatOption struct {
 
 // Struct returns struct go representation of resource
 func (rs *Resource) Struct(op FormatOption) []byte {
-	name := varfmt.PublicVarName(strings.Replace(rs.Name, "-", "_", -1))
+	name := varfmt.PublicVarName(normalize(rs.Name))
 	var src bytes.Buffer
 	fmt.Fprintf(&src, "// %s struct for %s resource\n", name, rs.Name)
 	fmt.Fprintf(&src, "type %s struct {\n", name)
@@ -131,7 +131,7 @@ func (pr *Property) Field(op FormatOption) []byte {
 		if pr.Required && pr.Pattern == nil {
 			fmt.Fprint(&src, " validate:\"required\"")
 		} else if pr.Required && pr.Pattern != nil {
-			fmt.Fprintf(&src, " validate:\"required,%s\"", pr.Name+"Validator")
+			fmt.Fprintf(&src, " validate:\"required,%s\"", fieldName+"Validator")
 		}
 	}
 	fmt.Fprint(&src, "`")
