@@ -7,6 +7,35 @@ import (
 	schema "github.com/lestrrat/go-jsschema"
 )
 
+func TestRefToStructName(t *testing.T) {
+	cases := []struct {
+		Prop Property
+	}{
+		{
+			Prop: Property{
+				Name:      "coupon",
+				Types:     []schema.PrimitiveType{schema.ObjectType},
+				Format:    "",
+				Reference: "#/definitions/coupon",
+				Required:  true,
+			},
+		},
+		{
+			Prop: Property{
+				Name:      "couponType",
+				Types:     []schema.PrimitiveType{schema.ObjectType},
+				Format:    "",
+				Reference: "#/definitions/coupon/definitions/types",
+				Required:  true,
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Logf(c.Prop.refToStructName())
+	}
+}
+
 func TestSimplePropertyField(t *testing.T) {
 	cases := []struct {
 		Prop     Property

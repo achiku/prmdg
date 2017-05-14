@@ -59,6 +59,21 @@ func normalize(n string) string {
 		strings.Replace(n, "-", "_", -1), " ", "_", -1)
 }
 
+// IsRefToMainResource check if first class resource
+func (pr *Property) IsRefToMainResource() bool {
+	var ref string
+	if pr.SecondReference != "" {
+		ref = pr.SecondReference
+	} else {
+		ref = pr.Reference
+	}
+	if ref == "" {
+		return false
+	}
+	tmp := strings.Replace(ref, "#/definitions/", "", 1)
+	return !strings.Contains(tmp, "/")
+}
+
 func (pr *Property) refToStructName() string {
 	// FIXME: too naieve. use js-pointer.
 	var ref string
@@ -101,8 +116,8 @@ func (pr *Property) Field(op FormatOption) []byte {
 	case pr.PropType == PropTypeScalar:
 		t = pr.ScalarType(op)
 	case pr.PropType == PropTypeArray:
-		if len(pr.SecondTypes) == 1 && pr.SecondTypes.Contains(schema.ObjectType) {
-			// referecnce to object
+		if len(pr.InlineProperties) == 0 && pr.IsRefToMainResource() && pr.SecondTypes.Contains(schema.ObjectType) {
+			// referecnce to main resource object
 			t = fmt.Sprintf("[]%s", varfmt.PublicVarName(normalize(pr.refToStructName())))
 		} else if len(pr.InlineProperties) != 0 {
 			// inline list object
@@ -111,10 +126,10 @@ func (pr *Property) Field(op FormatOption) []byte {
 			// an array of primitive types
 			t = fmt.Sprintf("[]%s", pr.ScalarType(op))
 		}
-	case pr.PropType == PropTypeObject && pr.refToStructName() != "":
-		// reference to object
+	case pr.Types.Contains(schema.ObjectType) && pr.IsRefToMainResource():
+		// reference to main resource object
 		t = fmt.Sprintf("*%s", varfmt.PublicVarName(normalize(pr.refToStructName())))
-	case pr.PropType == PropTypeObject && pr.refToStructName() == "":
+	case pr.Types.Contains(schema.ObjectType) && !pr.IsRefToMainResource():
 		// inline object
 		t = pr.inlineOjbect(op)
 	}

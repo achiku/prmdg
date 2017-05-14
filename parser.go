@@ -134,20 +134,41 @@ func NewProperty(name string, tp *schema.Schema, df *schema.Schema, root *schema
 			return nil, errors.Errorf("array type has to have an item: %s", name)
 		}
 		item := fieldSchema.Items.Schemas[0]
-		tmpItem, err := resolveSchema(item, root)
+		resolvedItem, err := resolveSchema(item, root)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to resolve: %s", name)
 		}
 		switch {
+		case isMainResource(item.Reference) && resolvedItem.Type.Contains(schema.ObjectType):
+			// reference to main resource object
+			// log.Printf("ref to main resource: %s: %s", name, item.Reference)
+			fld.SecondTypes = []schema.PrimitiveType{schema.ObjectType}
+			fld.SecondReference = item.Reference
+		case item.Properties == nil && fieldSchema.Properties != nil:
+			// field schema already has properties = inline object
+			// log.Printf("inline obj: %s: %v", name, fieldSchema.Properties)
+			var inlineFields []*Property
+			for k, prop := range fieldSchema.Properties {
+				f, err := NewProperty(k, prop, df, root)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to perse inline object: %s", k)
+				}
+				inlineFields = append(inlineFields, f)
+			}
+			fld.InlineProperties = inlineFields
+			fld.SecondTypes = []schema.PrimitiveType{schema.ObjectType}
 		case item.Reference == "" && item.Properties == nil:
 			// no reference, no item properties = primitive type
+			// log.Printf("primitive type: %s %s", name, item.Type)
 			fld.SecondTypes = item.Type
-		case item.Reference != "" && !tmpItem.Type.Contains(schema.ObjectType):
+		case item.Reference != "" && !resolvedItem.Type.Contains(schema.ObjectType):
 			// reference to primitive = resolved primitive type
-			fld.SecondTypes = tmpItem.Type
+			// log.Printf("resolved primitive type: %s %s", name, resolvedItem.Type)
+			fld.SecondTypes = resolvedItem.Type
 		case item.Reference == "" && item.Properties != nil:
 			// no reference, item properties = inline object
 			// parse properties, and recursively create inline fields
+			// log.Printf("resolved inline obj: %s: %v", name, item.Properties)
 			var inlineFields []*Property
 			for k, prop := range item.Properties {
 				f, err := NewProperty(k, prop, df, root)
@@ -157,10 +178,19 @@ func NewProperty(name string, tp *schema.Schema, df *schema.Schema, root *schema
 				inlineFields = append(inlineFields, f)
 			}
 			fld.InlineProperties = inlineFields
-		case item.Reference != "" && tmpItem.Type.Contains(schema.ObjectType):
-			// reference to object
 			fld.SecondTypes = []schema.PrimitiveType{schema.ObjectType}
-			fld.SecondReference = item.Reference
+		case !isMainResource(item.Reference):
+			// log.Printf("resolved inline obj: %s: %v", name, resolvedItem.Properties)
+			var inlineFields []*Property
+			for k, prop := range resolvedItem.Properties {
+				f, err := NewProperty(k, prop, df, root)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to perse inline object: %s", k)
+				}
+				inlineFields = append(inlineFields, f)
+			}
+			fld.InlineProperties = inlineFields
+			fld.SecondTypes = []schema.PrimitiveType{schema.ObjectType}
 		}
 		fld.PropType = PropTypeArray
 	case fieldSchema.Type.Contains(schema.ObjectType):
@@ -334,4 +364,12 @@ func (p *Parser) ParseJsValValidators() ([]*jsval.JSVal, error) {
 		}
 	}
 	return sortValidator(validators), nil
+}
+
+func isMainResource(ref string) bool {
+	if ref == "" {
+		return false
+	}
+	tmp := strings.Replace(ref, "#/definitions/", "", 1)
+	return !strings.Contains(tmp, "/")
 }

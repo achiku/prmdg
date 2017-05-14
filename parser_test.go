@@ -9,7 +9,8 @@ import (
 
 func testNewParser(t *testing.T) *Parser {
 	// sc, err := schema.ReadFile("./doc/large-example.json")
-	sc, err := schema.ReadFile("./doc/schema/schema.json")
+	sc, err := schema.ReadFile("./doc/schema/heroku.json")
+	// sc, err := schema.ReadFile("./doc/schema/schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,10 +30,11 @@ func TestParseResources(t *testing.T) {
 	// log.Printf("%v", res)
 	for key, r := range res {
 		t.Logf("%s/%s", key, r.Name)
-		t.Logf("%s", r.Struct(FormatOption{}))
+		// t.Logf("%s", r.Struct(FormatOption{}))
 		// for _, prop := range r.Properties {
-		// 	t.Logf("  %s %s: %s:%s %v",
-		// 		prop.Name, prop.Types, prop.SecondTypes, prop.Reference, prop.SecondReference)
+		// 	t.Logf("  %s %s: %s:%s %s, %v",
+		// 		prop.Name, prop.Types, prop.SecondTypes, prop.Reference,
+		// 		prop.SecondReference, prop.InlineProperties)
 		// }
 	}
 	// t.Logf("%v", res)
