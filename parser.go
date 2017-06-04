@@ -78,7 +78,7 @@ func sortProperties(props []*Property) []*Property {
 func sortActions(acs []Action) []Action {
 	aMap := make(map[string]Action)
 	for _, a := range acs {
-		aMap[a.Href] = a
+		aMap[a.Method+a.Href] = a
 	}
 	var refs []string
 	for r := range aMap {
