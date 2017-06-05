@@ -59,6 +59,12 @@ func normalize(n string) string {
 		strings.Replace(n, "-", "_", -1), " ", "_", -1)
 }
 
+// IsRefToMainResource is ref
+func IsRefToMainResource(ref string) bool {
+	tmp := strings.Replace(ref, "#/definitions/", "", 1)
+	return !strings.Contains(tmp, "/")
+}
+
 // IsRefToMainResource check if first class resource
 func (pr *Property) IsRefToMainResource() bool {
 	var ref string
@@ -271,6 +277,26 @@ func (a *Action) ResponseStruct(op FormatOption) []byte {
 		fmt.Fprintf(&src, "type %s []%s\n", name, orgName)
 		return src.Bytes()
 	}
-	fmt.Fprintf(&src, "type %s %s\n\n", name, orgName)
+	switch {
+	case len(a.Response.Properties) != 0:
+		fmt.Fprintf(&src, "type %s struct {\n", name)
+		for _, p := range a.Response.Properties {
+			fmt.Fprintf(&src, "%s\n", p.Field(op))
+		}
+		fmt.Fprint(&src, "}\n\n")
+	case a.Response.Schema != nil && IsRefToMainResource(a.Response.Schema.Reference):
+		tmp := strings.Replace(a.Response.Schema.Reference, "#/definitions/", "", 1)
+		refName := varfmt.PublicVarName(normalize(tmp))
+		fmt.Fprintf(&src, "type %s %s\n\n", name, refName)
+	case a.Response.Schema != nil && !IsRefToMainResource(a.Response.Schema.Reference):
+		pr := a.Response.Properties[0]
+		fmt.Fprintf(&src, "type %s struct {\n", name)
+		for _, p := range pr.InlineProperties {
+			fmt.Fprintf(&src, "%s\n", p.Field(op))
+		}
+		fmt.Fprint(&src, "}\n\n")
+	default:
+		fmt.Fprintf(&src, "type %s %s\n\n", name, orgName)
+	}
 	return src.Bytes()
 }

@@ -304,18 +304,39 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 			// parse response if exists
 			if e.TargetSchema != nil {
 				// http://json-schema.org/latest/json-schema-hypermedia.html#rfc.section.5.4
-				var flds []*Property
-				for name, tp := range e.TargetSchema.Properties {
-					fld, err := NewProperty(name, tp, df, p.schema)
+				switch {
+				case e.TargetSchema.Reference == "":
+					var flds []*Property
+					for name, tp := range e.TargetSchema.Properties {
+						fld, err := NewProperty(name, tp, df, p.schema)
+						if err != nil {
+							return nil, errors.Wrapf(err, "failed to parse %s", id)
+						}
+						flds = append(flds, fld)
+					}
+					ep.Response = &Resource{
+						Name:       id,
+						Properties: sortProperties(flds),
+						Title:      e.TargetSchema.Title,
+						Schema:     e.TargetSchema,
+					}
+				case e.TargetSchema.Reference != "" && IsRefToMainResource(e.TargetSchema.Reference):
+					ep.Response = &Resource{
+						Name:   id,
+						Title:  e.TargetSchema.Title,
+						Schema: e.TargetSchema,
+					}
+				case e.TargetSchema.Reference != "" && !IsRefToMainResource(e.TargetSchema.Reference):
+					fld, err := NewProperty(e.TargetSchema.ID, e.TargetSchema, df, p.schema)
 					if err != nil {
 						return nil, errors.Wrapf(err, "failed to parse %s", id)
 					}
-					flds = append(flds, fld)
-				}
-				ep.Response = &Resource{
-					Name:       id,
-					Properties: sortProperties(flds),
-					Title:      e.TargetSchema.Title,
+					ep.Response = &Resource{
+						Name:       id,
+						Properties: sortProperties(fld.InlineProperties),
+						Title:      e.TargetSchema.Title,
+						Schema:     e.TargetSchema,
+					}
 				}
 			} else {
 				// if targetSchema is not set, use default resource for this link
