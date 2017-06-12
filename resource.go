@@ -16,6 +16,7 @@ type Resource struct {
 	Title      string
 	Schema     *schema.Schema
 	Properties []*Property
+	IsPrimary  bool
 }
 
 // FormatOption output struct format option
@@ -61,6 +62,9 @@ func normalize(n string) string {
 
 // IsRefToMainResource is ref
 func IsRefToMainResource(ref string) bool {
+	if ref == "" {
+		return false
+	}
 	tmp := strings.Replace(ref, "#/definitions/", "", 1)
 	return !strings.Contains(tmp, "/")
 }
@@ -278,16 +282,16 @@ func (a *Action) ResponseStruct(op FormatOption) []byte {
 		return src.Bytes()
 	}
 	switch {
-	case len(a.Response.Properties) != 0:
+	case a.Response.IsPrimary:
+		fmt.Fprintf(&src, "type %s %s\n\n", name, orgName)
+	case a.Response.Schema != nil && IsRefToMainResource(a.Response.Schema.Reference):
+		fmt.Fprintf(&src, "type %s %s\n\n", name, orgName)
+	case a.Response.Schema != nil && a.Response.Schema.Reference == "" && len(a.Response.Properties) != 0:
 		fmt.Fprintf(&src, "type %s struct {\n", name)
 		for _, p := range a.Response.Properties {
 			fmt.Fprintf(&src, "%s\n", p.Field(op))
 		}
 		fmt.Fprint(&src, "}\n\n")
-	case a.Response.Schema != nil && IsRefToMainResource(a.Response.Schema.Reference):
-		tmp := strings.Replace(a.Response.Schema.Reference, "#/definitions/", "", 1)
-		refName := varfmt.PublicVarName(normalize(tmp))
-		fmt.Fprintf(&src, "type %s %s\n\n", name, refName)
 	case a.Response.Schema != nil && !IsRefToMainResource(a.Response.Schema.Reference):
 		pr := a.Response.Properties[0]
 		fmt.Fprintf(&src, "type %s struct {\n", name)
@@ -295,8 +299,6 @@ func (a *Action) ResponseStruct(op FormatOption) []byte {
 			fmt.Fprintf(&src, "%s\n", p.Field(op))
 		}
 		fmt.Fprint(&src, "}\n\n")
-	default:
-		fmt.Fprintf(&src, "type %s %s\n\n", name, orgName)
 	}
 	return src.Bytes()
 }

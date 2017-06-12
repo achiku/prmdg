@@ -244,9 +244,10 @@ func (p *Parser) ParseResources() (map[string]Resource, error) {
 	// parse resource itself
 	for id, df := range p.schema.Definitions {
 		rs := Resource{
-			Name:   id,
-			Title:  df.Title,
-			Schema: df,
+			Name:      id,
+			Title:     df.Title,
+			Schema:    df,
+			IsPrimary: true,
 		}
 		// parse resource field
 		var flds []*Property
@@ -319,12 +320,14 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 						Properties: sortProperties(flds),
 						Title:      e.TargetSchema.Title,
 						Schema:     e.TargetSchema,
+						IsPrimary:  false,
 					}
 				case e.TargetSchema.Reference != "" && IsRefToMainResource(e.TargetSchema.Reference):
 					ep.Response = &Resource{
-						Name:   id,
-						Title:  e.TargetSchema.Title,
-						Schema: e.TargetSchema,
+						Name:      id,
+						Title:     e.TargetSchema.Title,
+						Schema:    e.TargetSchema,
+						IsPrimary: false,
 					}
 				case e.TargetSchema.Reference != "" && !IsRefToMainResource(e.TargetSchema.Reference):
 					fld, err := NewProperty(e.TargetSchema.ID, e.TargetSchema, df, p.schema)
@@ -336,6 +339,7 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 						Properties: sortProperties(fld.InlineProperties),
 						Title:      e.TargetSchema.Title,
 						Schema:     e.TargetSchema,
+						IsPrimary:  false,
 					}
 				}
 			} else {
