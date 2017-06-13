@@ -84,6 +84,10 @@ func (pr *Property) IsRefToMainResource() bool {
 	return !strings.Contains(tmp, "/")
 }
 
+func refToStructName(s string) string {
+	return normalize(strings.Replace(s, "#/definitions/", "", 1))
+}
+
 func (pr *Property) refToStructName() string {
 	// FIXME: too naieve. use js-pointer.
 	var ref string
@@ -283,19 +287,23 @@ func (a *Action) ResponseStruct(op FormatOption) []byte {
 	}
 	switch {
 	case a.Response.IsPrimary:
+		// log.Printf("main resource: %s", name)
 		fmt.Fprintf(&src, "type %s %s\n\n", name, orgName)
 	case a.Response.Schema != nil && IsRefToMainResource(a.Response.Schema.Reference):
-		fmt.Fprintf(&src, "type %s %s\n\n", name, orgName)
+		// log.Printf("with target schema + main resource: %s: %s", name, a.Response.Schema.Reference)
+		refName := varfmt.PublicVarName(refToStructName(a.Response.Schema.Reference))
+		fmt.Fprintf(&src, "type %s %s\n\n", name, refName)
 	case a.Response.Schema != nil && a.Response.Schema.Reference == "" && len(a.Response.Properties) != 0:
+		// log.Printf("with target schema + inline resource: %s: %s", name, a.Response.Schema.Reference)
 		fmt.Fprintf(&src, "type %s struct {\n", name)
 		for _, p := range a.Response.Properties {
 			fmt.Fprintf(&src, "%s\n", p.Field(op))
 		}
 		fmt.Fprint(&src, "}\n\n")
 	case a.Response.Schema != nil && !IsRefToMainResource(a.Response.Schema.Reference):
-		pr := a.Response.Properties[0]
+		// log.Printf("with target schema + deep inline resource: %s: %s", name, a.Response.Schema.Reference)
 		fmt.Fprintf(&src, "type %s struct {\n", name)
-		for _, p := range pr.InlineProperties {
+		for _, p := range a.Response.Properties {
 			fmt.Fprintf(&src, "%s\n", p.Field(op))
 		}
 		fmt.Fprint(&src, "}\n\n")

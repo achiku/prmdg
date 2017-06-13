@@ -300,6 +300,7 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 					Name:       id,
 					Properties: sortProperties(flds),
 					Title:      e.Schema.Title,
+					IsPrimary:  false,
 				}
 			}
 			// parse response if exists
