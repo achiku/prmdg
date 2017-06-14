@@ -16,6 +16,7 @@ type Resource struct {
 	Title      string
 	Schema     *schema.Schema
 	Properties []*Property
+	IsPrimary  bool
 }
 
 // FormatOption output struct format option
@@ -59,6 +60,15 @@ func normalize(n string) string {
 		strings.Replace(n, "-", "_", -1), " ", "_", -1)
 }
 
+// IsRefToMainResource is ref
+func IsRefToMainResource(ref string) bool {
+	if ref == "" {
+		return false
+	}
+	tmp := strings.Replace(ref, "#/definitions/", "", 1)
+	return !strings.Contains(tmp, "/")
+}
+
 // IsRefToMainResource check if first class resource
 func (pr *Property) IsRefToMainResource() bool {
 	var ref string
@@ -72,6 +82,10 @@ func (pr *Property) IsRefToMainResource() bool {
 	}
 	tmp := strings.Replace(ref, "#/definitions/", "", 1)
 	return !strings.Contains(tmp, "/")
+}
+
+func refToStructName(s string) string {
+	return normalize(strings.Replace(s, "#/definitions/", "", 1))
 }
 
 func (pr *Property) refToStructName() string {
@@ -216,6 +230,7 @@ func (pr *Property) ScalarType(op FormatOption) string {
 
 // Action endpoint
 type Action struct {
+	Encoding string
 	Href     string
 	Method   string
 	Rel      string
@@ -271,6 +286,28 @@ func (a *Action) ResponseStruct(op FormatOption) []byte {
 		fmt.Fprintf(&src, "type %s []%s\n", name, orgName)
 		return src.Bytes()
 	}
-	fmt.Fprintf(&src, "type %s %s\n\n", name, orgName)
+	switch {
+	case a.Response.IsPrimary:
+		// log.Printf("main resource: %s", name)
+		fmt.Fprintf(&src, "type %s %s\n\n", name, orgName)
+	case a.Response.Schema != nil && IsRefToMainResource(a.Response.Schema.Reference):
+		// log.Printf("with target schema + main resource: %s: %s", name, a.Response.Schema.Reference)
+		refName := varfmt.PublicVarName(refToStructName(a.Response.Schema.Reference))
+		fmt.Fprintf(&src, "type %s %s\n\n", name, refName)
+	case a.Response.Schema != nil && a.Response.Schema.Reference == "" && len(a.Response.Properties) != 0:
+		// log.Printf("with target schema + inline resource: %s: %s", name, a.Response.Schema.Reference)
+		fmt.Fprintf(&src, "type %s struct {\n", name)
+		for _, p := range a.Response.Properties {
+			fmt.Fprintf(&src, "%s\n", p.Field(op))
+		}
+		fmt.Fprint(&src, "}\n\n")
+	case a.Response.Schema != nil && !IsRefToMainResource(a.Response.Schema.Reference):
+		// log.Printf("with target schema + deep inline resource: %s: %s", name, a.Response.Schema.Reference)
+		fmt.Fprintf(&src, "type %s struct {\n", name)
+		for _, p := range a.Response.Properties {
+			fmt.Fprintf(&src, "%s\n", p.Field(op))
+		}
+		fmt.Fprint(&src, "}\n\n")
+	}
 	return src.Bytes()
 }

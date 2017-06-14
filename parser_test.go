@@ -80,7 +80,7 @@ func TestParseActions(t *testing.T) {
 }
 
 func TestParseActionLargeJSON(t *testing.T) {
-	sc, err := schema.ReadFile("./doc/schema/schema.json")
+	sc, err := schema.ReadFile("./doc/large-example.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,18 +97,20 @@ func TestParseActionLargeJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, ac := range act {
+	for nm, ac := range act {
+		t.Logf("%s", nm)
 		for _, a := range ac {
-			resp, err := format.Source(a.ResponseStruct(FormatOption{}))
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Logf("%s", resp)
-			req, err := format.Source(a.RequestStruct(FormatOption{}))
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Logf("%s", req)
+			t.Logf("  %s: %s", a.Method, a.Href)
+			// resp, err := format.Source(a.ResponseStruct(FormatOption{}))
+			// if err != nil {
+			// 	t.Fatal(err)
+			// }
+			// t.Logf("%s", resp)
+			// req, err := format.Source(a.RequestStruct(FormatOption{}))
+			// if err != nil {
+			// 	t.Fatal(err)
+			// }
+			// t.Logf("%s", req)
 		}
 	}
 }

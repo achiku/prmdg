@@ -244,9 +244,10 @@ func (p *Parser) ParseResources() (map[string]Resource, error) {
 	// parse resource itself
 	for id, df := range p.schema.Definitions {
 		rs := Resource{
-			Name:   id,
-			Title:  df.Title,
-			Schema: df,
+			Name:      id,
+			Title:     df.Title,
+			Schema:    df,
+			IsPrimary: true,
 		}
 		// parse resource field
 		var flds []*Property
@@ -279,11 +280,18 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to unescape %s", e.Href)
 			}
+			var encoding string
+			if e.EncType == "" {
+				encoding = "application/json"
+			} else {
+				encoding = e.EncType
+			}
 			ep := Action{
-				Href:   href,
-				Method: e.Method,
-				Title:  e.Title,
-				Rel:    e.Rel,
+				Encoding: encoding,
+				Href:     href,
+				Method:   e.Method,
+				Title:    e.Title,
+				Rel:      e.Rel,
 			}
 			// parse request if exists
 			if e.Schema != nil {
@@ -299,23 +307,48 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 					Name:       id,
 					Properties: sortProperties(flds),
 					Title:      e.Schema.Title,
+					IsPrimary:  false,
 				}
 			}
 			// parse response if exists
 			if e.TargetSchema != nil {
 				// http://json-schema.org/latest/json-schema-hypermedia.html#rfc.section.5.4
-				var flds []*Property
-				for name, tp := range e.TargetSchema.Properties {
-					fld, err := NewProperty(name, tp, df, p.schema)
+				switch {
+				case e.TargetSchema.Reference == "":
+					var flds []*Property
+					for name, tp := range e.TargetSchema.Properties {
+						fld, err := NewProperty(name, tp, df, p.schema)
+						if err != nil {
+							return nil, errors.Wrapf(err, "failed to parse %s", id)
+						}
+						flds = append(flds, fld)
+					}
+					ep.Response = &Resource{
+						Name:       id,
+						Properties: sortProperties(flds),
+						Title:      e.TargetSchema.Title,
+						Schema:     e.TargetSchema,
+						IsPrimary:  false,
+					}
+				case e.TargetSchema.Reference != "" && IsRefToMainResource(e.TargetSchema.Reference):
+					ep.Response = &Resource{
+						Name:      id,
+						Title:     e.TargetSchema.Title,
+						Schema:    e.TargetSchema,
+						IsPrimary: false,
+					}
+				case e.TargetSchema.Reference != "" && !IsRefToMainResource(e.TargetSchema.Reference):
+					fld, err := NewProperty(e.TargetSchema.ID, e.TargetSchema, df, p.schema)
 					if err != nil {
 						return nil, errors.Wrapf(err, "failed to parse %s", id)
 					}
-					flds = append(flds, fld)
-				}
-				ep.Response = &Resource{
-					Name:       id,
-					Properties: sortProperties(flds),
-					Title:      e.TargetSchema.Title,
+					ep.Response = &Resource{
+						Name:       id,
+						Properties: sortProperties(fld.InlineProperties),
+						Title:      e.TargetSchema.Title,
+						Schema:     e.TargetSchema,
+						IsPrimary:  false,
+					}
 				}
 			} else {
 				// if targetSchema is not set, use default resource for this link
