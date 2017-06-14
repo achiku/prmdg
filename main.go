@@ -141,14 +141,15 @@ func generateStructFile(pkg *string, fp string, op *string, val, useTitle, nulla
 		actions := links[k]
 		for _, action := range actions {
 			var reqOpt FormatOption
-			if action.Method == "GET" {
+			switch {
+			case action.Method == "GET" || action.Encoding == "application/x-www-form-urlencoded":
 				reqOpt = FormatOption{
 					Validator: val,
 					Schema:    true,
 					UseTitle:  useTitle,
 					UseNull:   nullable,
 				}
-			} else {
+			default:
 				reqOpt = FormatOption{
 					Validator: val,
 					Schema:    false,

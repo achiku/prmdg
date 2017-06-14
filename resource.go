@@ -230,6 +230,7 @@ func (pr *Property) ScalarType(op FormatOption) string {
 
 // Action endpoint
 type Action struct {
+	Encoding string
 	Href     string
 	Method   string
 	Rel      string

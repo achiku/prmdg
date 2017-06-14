@@ -280,11 +280,18 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to unescape %s", e.Href)
 			}
+			var encoding string
+			if e.EncType == "" {
+				encoding = "application/json"
+			} else {
+				encoding = e.EncType
+			}
 			ep := Action{
-				Href:   href,
-				Method: e.Method,
-				Title:  e.Title,
-				Rel:    e.Rel,
+				Encoding: encoding,
+				Href:     href,
+				Method:   e.Method,
+				Title:    e.Title,
+				Rel:      e.Rel,
 			}
 			// parse request if exists
 			if e.Schema != nil {
