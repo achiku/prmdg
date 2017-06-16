@@ -205,7 +205,6 @@ func generateJsValValidatorFile(pkg *string, fp string, op *string) error {
 	generator := jsval.NewGenerator()
 	var src bytes.Buffer
 	fmt.Fprintf(&src, "package %s\n", *pkg)
-	fmt.Fprint(&src, "import \"github.com/lestrrat/go-jsval\"\n")
 	if err := generator.Process(&src, validators...); err != nil {
 		return err
 	}
