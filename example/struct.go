@@ -1,41 +1,35 @@
-package exampleapi
+package taskyapi
 
 import "time"
 
+// Error struct for error resource
+type Error struct {
+	Code        string `json:"code"`
+	Detail      string `json:"detail"`
+	ErrorFields []struct {
+		Message string `json:"message,omitempty"`
+		Name    string `json:"name,omitempty"`
+	} `json:"errorFields,omitempty"`
+}
+
 // Task struct for task resource
 type Task struct {
-	ID            string    `json:"id" schema:"id"`
-	Identity      string    `json:"identity,omitempty" schema:"identity"`
-	Name          string    `json:"name" schema:"name"`
-	CreatedAt     time.Time `json:"createdAt" schema:"createdAt"`
-	StartedAt     time.Time `json:"startedAt" schema:"startedAt"`
-	UserID        string    `json:"userId,omitempty" schema:"userId"`
-	Status        string    `json:"status" schema:"status"`
-	TotalDuration int64     `json:"totalDuration" schema:"totalDuration"`
-	CompletedAt   time.Time `json:"completedAt" schema:"completedAt"`
+	CompletedAt time.Time `json:"completedAt"`
+	CreatedAt   time.Time `json:"createdAt"`
+	ID          string    `json:"id"`
+	Spent       int64     `json:"spent"`
+	StartedAt   time.Time `json:"startedAt"`
+	Status      string    `json:"status"`
+	Tags        []string  `json:"tags"`
+	Title       string    `json:"title"`
+	User        *User     `json:"user,omitempty"`
 }
 
 // User struct for user resource
 type User struct {
-	ID       string `json:"id" schema:"id"`
-	Identity string `json:"identity,omitempty" schema:"identity"`
-	Name     string `json:"name" schema:"name"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
-
-// TaskSelfResponse struct for task
-// GET: /tasks/{(#/definitions/task/definitions/identity)}
-type TaskSelfResponse Task
-
-// TaskCreateRequest struct for task
-// POST: /tasks
-type TaskCreateRequest struct {
-	Name   string `json:"name" schema:"name"`
-	UserID string `json:"userId" schema:"userId"`
-}
-
-// TaskCreateResponse struct for task
-// POST: /tasks
-type TaskCreateResponse Task
 
 // TaskInstancesRequest struct for task
 // GET: /tasks
@@ -47,6 +41,21 @@ type TaskInstancesRequest struct {
 // TaskInstancesResponse struct for task
 // GET: /tasks
 type TaskInstancesResponse []Task
+
+// TaskSelfResponse struct for task
+// GET: /tasks/{(#/definitions/task/definitions/identity)}
+type TaskSelfResponse Task
+
+// TaskCreateRequest struct for task
+// POST: /tasks
+type TaskCreateRequest struct {
+	Tags  []string `json:"tags"`
+	Title string   `json:"title"`
+}
+
+// TaskCreateResponse struct for task
+// POST: /tasks
+type TaskCreateResponse Task
 
 // UserSelfResponse struct for user
 // GET: /me

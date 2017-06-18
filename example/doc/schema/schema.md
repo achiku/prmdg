@@ -1,14 +1,19 @@
-## ヘッダ
+## tasky.io API reference
 
-APIを利用するアプリのバージョンやID、端末を一意に識別するIDをヘッダに含める必要があります。
+This is psuedo Todo management service API (tasky.io) reference.
 
-- `Tasky-UUID`: デバイスを識別する一意なID
-- `Tasky-App-Version`: 利用しているアプリのバージョン
-- `Tasky-App-ID`: 利用しているアプリのID
 
-## 認証
+## Request Headers
 
-認証が必要なリクエストの場合は通常のヘッダ項目に加えて、Authorizationをヘッダに含める必要があります。
+It is necessary to include the below headers to request API.
+
+- `Tasky-UUID`: device uuid
+- `Tasky-App-Version`: app version
+- `Tasky-App-ID`: app id
+
+## Authorization
+
+Whenever authorization is required, add the `Authorization` header with above headers.
 
 ```
 Authorization Bearer abcdefghijklmnopqrstuvwxyzabcdefghijklmn
@@ -17,29 +22,46 @@ Tasky-App-Version 1.0.0
 ```
 
 
-## <a name="resource-task">タスク</a>
+## <a name="resource-error">Error</a>
 
 Stability: `prototype`
 
-タスクを表します。
+This resource represents API error
 
 ### Attributes
 
 | Name | Type | Description | Example |
 | ------- | ------- | ------- | ------- |
-| **completedAt** | *date-time* | 直近の終了時間日時 | `"2016-02-01T12:13:14Z"` |
-| **createdAt** | *date-time* | 作成日時 | `"2016-02-01T12:13:14Z"` |
-| **id** | *uuid* | タスクID | `"ec0a1edc-062e-11e7-8b1e-040ccee2aa06"` |
-| **name** | *string* | タスク名 | `"コーヒーを買う"` |
-| **startedAt** | *date-time* | 直近の開始日時 | `"2016-02-01T12:13:14Z"` |
-| **status** | *string* | タスク状態<br/> **one of:**`"done"` or `"doing"` or `"todo"` | `"done"` |
-| **totalDuration** | *integer* | 累積タスク対応時間(秒) | `120` |
-| **[user:id](#resource-user)** | *uuid* | ユーザーID | `"ec0a1edc-062e-11e7-8b1e-040ccee2aa06"` |
-| **[user:name](#resource-user)** | *string* | ユーザー名 | `"8maki"` |
+| **code** | *string* | error code<br/> **one of:**`"invalid_params"` or `"invalid_request"` or `"unauthorized"` or `"unsupported_client_version"` | `"invalid_params"` |
+| **detail** | *string* | error detail | `"invalid param"` |
+| **errorFields/message** | *string* | error message for invalid param field | `"invalid status"` |
+| **errorFields/name** | *string* | param field name | `"status"` |
 
-### <a name="link-GET-task-/tasks/{(%23%2Fdefinitions%2Ftask%2Fdefinitions%2Fidentity)}">タスク 詳細</a>
 
-タスクの詳細を取得します。(正常ステータスコード: `200`)
+## <a name="resource-task">Task</a>
+
+Stability: `prototype`
+
+This resource represents task
+
+### Attributes
+
+| Name | Type | Description | Example |
+| ------- | ------- | ------- | ------- |
+| **completedAt** | *date-time* | time completed a task | `"2016-02-01T12:13:14Z"` |
+| **createdAt** | *date-time* | time created a task | `"2016-02-01T12:13:14Z"` |
+| **id** | *uuid* | task id | `"ec0a1edc-062e-11e7-8b1e-040ccee2aa06"` |
+| **spent** | *integer* | time spent doing task in minutes | `12` |
+| **startedAt** | *date-time* | time started a task | `"2016-02-01T12:13:14Z"` |
+| **status** | *string* | task status<br/> **one of:**`"done"` or `"doing"` or `"stopped"` | `"done"` |
+| **tags** | *array* | tags | `["study"]` |
+| **title** | *string* | task title | `"Buy coffee"` |
+| **[user:id](#resource-user)** | *uuid* | user id | `"ec0a1edc-062e-11e7-8b1e-040ccee2aa06"` |
+| **[user:name](#resource-user)** | *string* | user name | `"8maki"` |
+
+### <a name="link-GET-task-/tasks/{(%23%2Fdefinitions%2Ftask%2Fdefinitions%2Fidentity)}">Task detail</a>
+
+Get task detail
 
 ```
 GET /tasks/{task_id}
@@ -62,22 +84,25 @@ HTTP/1.1 200 OK
 ```json
 {
   "id": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
-  "name": "コーヒーを買う",
+  "title": "Buy coffee",
   "user": {
     "id": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
     "name": "8maki"
   },
   "status": "done",
-  "totalDuration": 120,
+  "spent": 12,
   "startedAt": "2016-02-01T12:13:14Z",
   "createdAt": "2016-02-01T12:13:14Z",
-  "completedAt": "2016-02-01T12:13:14Z"
+  "completedAt": "2016-02-01T12:13:14Z",
+  "tags": [
+    "study"
+  ]
 }
 ```
 
-### <a name="link-POST-task-/tasks">タスク 作成</a>
+### <a name="link-POST-task-/tasks">Task create</a>
 
-タスクを作成します。(正常ステータスコード: `201`)
+Create task
 
 ```
 POST /tasks
@@ -87,9 +112,14 @@ POST /tasks
 
 | Name | Type | Description | Example |
 | ------- | ------- | ------- | ------- |
-| **name** | *string* | タスク名 | `"コーヒーを買う"` |
-| **userId** | *uuid* | ユーザーID | `"ec0a1edc-062e-11e7-8b1e-040ccee2aa06"` |
+| **title** | *string* | task title | `"Buy coffee"` |
 
+
+#### Optional Parameters
+
+| Name | Type | Description | Example |
+| ------- | ------- | ------- | ------- |
+| **tags** | *array* | tags | `["study"]` |
 
 
 #### Curl Example
@@ -97,8 +127,10 @@ POST /tasks
 ```bash
 $ curl -n -X POST https://tasky.io/v1/tasks \
   -d '{
-  "name": "コーヒーを買う",
-  "userId": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06"
+  "title": "Buy coffee",
+  "tags": [
+    "study"
+  ]
 }' \
   -H "Content-Type: application/json"
 ```
@@ -113,22 +145,25 @@ HTTP/1.1 201 Created
 ```json
 {
   "id": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
-  "name": "コーヒーを買う",
+  "title": "Buy coffee",
   "user": {
     "id": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
     "name": "8maki"
   },
   "status": "done",
-  "totalDuration": 120,
+  "spent": 12,
   "startedAt": "2016-02-01T12:13:14Z",
   "createdAt": "2016-02-01T12:13:14Z",
-  "completedAt": "2016-02-01T12:13:14Z"
+  "completedAt": "2016-02-01T12:13:14Z",
+  "tags": [
+    "study"
+  ]
 }
 ```
 
-### <a name="link-GET-task-/tasks">タスク 一覧</a>
+### <a name="link-GET-task-/tasks">Task list</a>
 
-タスクの一覧を取得します。(正常ステータスコード: `200`)
+Get task list
 
 ```
 GET /tasks
@@ -138,8 +173,8 @@ GET /tasks
 
 | Name | Type | Description | Example |
 | ------- | ------- | ------- | ------- |
-| **limit** | *integer* | 取得する要素数(デフォルト20) | `20` |
-| **offset** | *integer* | 取得する要素のオフセット(0から開始) | `20` |
+| **limit** | *integer* | limit | `20` |
+| **offset** | *integer* | offset | `20` |
 
 
 #### Curl Example
@@ -162,37 +197,40 @@ HTTP/1.1 200 OK
 [
   {
     "id": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
-    "name": "コーヒーを買う",
+    "title": "Buy coffee",
     "user": {
       "id": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
       "name": "8maki"
     },
     "status": "done",
-    "totalDuration": 120,
+    "spent": 12,
     "startedAt": "2016-02-01T12:13:14Z",
     "createdAt": "2016-02-01T12:13:14Z",
-    "completedAt": "2016-02-01T12:13:14Z"
+    "completedAt": "2016-02-01T12:13:14Z",
+    "tags": [
+      "study"
+    ]
   }
 ]
 ```
 
 
-## <a name="resource-user">ユーザー</a>
+## <a name="resource-user">User</a>
 
 Stability: `prototype`
 
-ユーザーを表します。
+This resource represents user
 
 ### Attributes
 
 | Name | Type | Description | Example |
 | ------- | ------- | ------- | ------- |
-| **id** | *uuid* | ユーザーID | `"ec0a1edc-062e-11e7-8b1e-040ccee2aa06"` |
-| **name** | *string* | ユーザー名 | `"8maki"` |
+| **id** | *uuid* | user id | `"ec0a1edc-062e-11e7-8b1e-040ccee2aa06"` |
+| **name** | *string* | user name | `"8maki"` |
 
-### <a name="link-GET-user-/me">ユーザー 詳細</a>
+### <a name="link-GET-user-/me">User detail</a>
 
-ログイン中のユーザー情報を取得します。(正常ステータスコード: `200`)
+Get authenticated user detail
 
 ```
 GET /me

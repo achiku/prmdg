@@ -1,14 +1,19 @@
-## ヘッダ
+## tasky.io API reference
 
-APIを利用するアプリのバージョンやID、端末を一意に識別するIDをヘッダに含める必要があります。
+This is psuedo Todo management service API (tasky.io) reference.
 
-- `Tasky-UUID`: デバイスを識別する一意なID
-- `Tasky-App-Version`: 利用しているアプリのバージョン
-- `Tasky-App-ID`: 利用しているアプリのID
 
-## 認証
+## Request Headers
 
-認証が必要なリクエストの場合は通常のヘッダ項目に加えて、Authorizationをヘッダに含める必要があります。
+It is necessary to include the below headers to request API.
+
+- `Tasky-UUID`: device uuid
+- `Tasky-App-Version`: app version
+- `Tasky-App-ID`: app id
+
+## Authorization
+
+Whenever authorization is required, add the `Authorization` header with above headers.
 
 ```
 Authorization Bearer abcdefghijklmnopqrstuvwxyzabcdefghijklmn
