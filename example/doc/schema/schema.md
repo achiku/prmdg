@@ -21,6 +21,16 @@ Tasky-UUID FCDBD8EF-62FC-4ECB-B2F5-92C9E79AC7F9
 Tasky-App-Version 1.0.0
 ```
 
+## The table of contents
+
+- <a href="#resource-error">Error</a>
+- <a href="#resource-task">Task</a>
+  - <a href="#link-GET-task-/tasks/{(%23%2Fdefinitions%2Ftask%2Fdefinitions%2Fidentity)}">GET /tasks/{task_id}</a>
+  - <a href="#link-POST-task-/tasks">POST /tasks</a>
+  - <a href="#link-GET-task-/tasks">GET /tasks</a>
+- <a href="#resource-user">User</a>
+  - <a href="#link-GET-user-/me">GET /me</a>
+
 ## <a name="resource-error">Error</a>
 
 Stability: `prototype`
