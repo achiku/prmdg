@@ -21,7 +21,6 @@ Tasky-UUID FCDBD8EF-62FC-4ECB-B2F5-92C9E79AC7F9
 Tasky-App-Version 1.0.0
 ```
 
-
 ## <a name="resource-error">Error</a>
 
 Stability: `prototype`
