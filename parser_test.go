@@ -8,9 +8,7 @@ import (
 )
 
 func testNewParser(t *testing.T) *Parser {
-	// sc, err := schema.ReadFile("./doc/large-example.json")
-	sc, err := schema.ReadFile("./doc/schema/heroku.json")
-	// sc, err := schema.ReadFile("./doc/schema/schema.json")
+	sc, err := schema.ReadFile("./example/doc/schema/schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +78,7 @@ func TestParseActions(t *testing.T) {
 }
 
 func TestParseActionLargeJSON(t *testing.T) {
-	sc, err := schema.ReadFile("./doc/large-example.json")
+	sc, err := schema.ReadFile("./example/doc/schema/schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
