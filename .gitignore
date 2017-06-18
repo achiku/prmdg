@@ -24,4 +24,4 @@ _testmain.go
 *.prof
 
 vendor
-doc/large-example.json
+example/doc/large-example.json
