@@ -4,10 +4,93 @@
     "object"
   ],
   "definitions": {
+    "error": {
+      "$schema": "http://json-schema.org/draft-04/hyper-schema",
+      "title": "Error",
+      "description": "This resource represents API error",
+      "stability": "prototype",
+      "strictProperties": true,
+      "type": [
+        "object"
+      ],
+      "definitions": {
+        "code": {
+          "description": "error code",
+          "example": "invalid_params",
+          "readOnly": true,
+          "type": [
+            "string"
+          ],
+          "enum": [
+            "invalid_params",
+            "invalid_request",
+            "unauthorized",
+            "unsupported_client_version"
+          ]
+        },
+        "detail": {
+          "description": "error detail",
+          "example": "invalid param",
+          "readOnly": true,
+          "type": [
+            "string"
+          ]
+        },
+        "errorFields": {
+          "description": "detail for invalid param field",
+          "readOnly": true,
+          "type": [
+            "array"
+          ],
+          "items": {
+            "properties": {
+              "name": {
+                "description": "param field name",
+                "example": "status",
+                "readOnly": true,
+                "type": [
+                  "string"
+                ]
+              },
+              "message": {
+                "description": "error message for invalid param field",
+                "example": "invalid status",
+                "readOnly": true,
+                "type": [
+                  "string"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "message"
+            ],
+            "type": [
+              "object"
+            ]
+          }
+        }
+      },
+      "properties": {
+        "code": {
+          "$ref": "#/definitions/error/definitions/code"
+        },
+        "detail": {
+          "$ref": "#/definitions/error/definitions/detail"
+        },
+        "errorFields": {
+          "$ref": "#/definitions/error/definitions/errorFields"
+        }
+      },
+      "required": [
+        "code",
+        "detail"
+      ]
+    },
     "task": {
       "$schema": "http://json-schema.org/draft-04/hyper-schema",
-      "title": "タスク",
-      "description": "タスクを表します。",
+      "title": "Task",
+      "description": "This resource represents task",
       "stability": "prototype",
       "strictProperties": true,
       "type": [
@@ -15,7 +98,7 @@
       ],
       "definitions": {
         "id": {
-          "description": "タスクID",
+          "description": "task id",
           "example": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
           "readOnly": true,
           "format": "uuid",
@@ -29,16 +112,16 @@
         "identity": {
           "$ref": "#/definitions/task/definitions/id"
         },
-        "name": {
-          "description": "タスク名",
-          "example": "コーヒーを買う",
+        "title": {
+          "description": "task title",
+          "example": "Buy coffee",
           "readOnly": true,
           "type": [
             "string"
           ]
         },
         "status": {
-          "description": "タスク状態",
+          "description": "task status",
           "example": "done",
           "readOnly": true,
           "type": [
@@ -47,19 +130,19 @@
           "enum": [
             "done",
             "doing",
-            "todo"
+            "stopped"
           ]
         },
-        "totalDuration": {
-          "description": "累積タスク対応時間(秒)",
-          "example": 120,
+        "spent": {
+          "description": "time spent doing task in minutes",
+          "example": 12,
           "readOnly": true,
           "type": [
             "integer"
           ]
         },
         "createdAt": {
-          "description": "作成日時",
+          "description": "time created a task",
           "format": "date-time",
           "example": "2016-02-01T12:13:14Z",
           "readOnly": true,
@@ -68,7 +151,7 @@
           ]
         },
         "startedAt": {
-          "description": "直近の開始日時",
+          "description": "time started a task",
           "format": "date-time",
           "example": "2016-02-01T12:13:14Z",
           "readOnly": true,
@@ -77,41 +160,52 @@
           ]
         },
         "completedAt": {
-          "description": "直近の終了時間日時",
+          "description": "time completed a task",
           "format": "date-time",
           "example": "2016-02-01T12:13:14Z",
           "readOnly": true,
           "type": [
             "string"
           ]
+        },
+        "tags": {
+          "description": "tags",
+          "type": [
+            "array"
+          ],
+          "items": {
+            "example": "study",
+            "type": [
+              "string"
+            ]
+          }
         }
       },
       "links": [
         {
-          "description": "タスクの詳細を取得します。(正常ステータスコード: `200`)",
+          "description": "Get task detail",
           "href": "/tasks/{(%23%2Fdefinitions%2Ftask%2Fdefinitions%2Fidentity)}",
-          "title": "詳細",
+          "title": "detail",
           "method": "GET",
           "rel": "self"
         },
         {
-          "description": "タスクを作成します。(正常ステータスコード: `201`)",
+          "description": "Create task",
           "href": "/tasks",
-          "title": "作成",
+          "title": "create",
           "method": "POST",
           "rel": "create",
           "schema": {
             "properties": {
-              "name": {
-                "$ref": "#/definitions/task/definitions/name"
+              "title": {
+                "$ref": "#/definitions/task/definitions/title"
               },
-              "userId": {
-                "$ref": "#/definitions/task/definitions/userId"
+              "tags": {
+                "$ref": "#/definitions/task/definitions/tags"
               }
             },
             "required": [
-              "name",
-              "userId"
+              "title"
             ],
             "type": [
               "object"
@@ -125,22 +219,22 @@
           }
         },
         {
-          "description": "タスクの一覧を取得します。(正常ステータスコード: `200`)",
+          "description": "Get task list",
           "href": "/tasks",
-          "title": "一覧",
+          "title": "list",
           "method": "GET",
           "rel": "instances",
           "schema": {
             "properties": {
               "limit": {
-                "description": "取得する要素数(デフォルト20)",
+                "description": "limit",
                 "example": 20,
                 "type": [
                   "integer"
                 ]
               },
               "offset": {
-                "description": "取得する要素のオフセット(0から開始)",
+                "description": "offset",
                 "example": 20,
                 "type": [
                   "integer"
@@ -165,8 +259,8 @@
         "id": {
           "$ref": "#/definitions/task/definitions/id"
         },
-        "name": {
-          "$ref": "#/definitions/task/definitions/name"
+        "title": {
+          "$ref": "#/definitions/task/definitions/title"
         },
         "user": {
           "$ref": "#/definitions/user"
@@ -174,8 +268,8 @@
         "status": {
           "$ref": "#/definitions/task/definitions/status"
         },
-        "totalDuration": {
-          "$ref": "#/definitions/task/definitions/totalDuration"
+        "spent": {
+          "$ref": "#/definitions/task/definitions/spent"
         },
         "startedAt": {
           "$ref": "#/definitions/task/definitions/startedAt"
@@ -185,22 +279,26 @@
         },
         "completedAt": {
           "$ref": "#/definitions/task/definitions/completedAt"
+        },
+        "tags": {
+          "$ref": "#/definitions/task/definitions/tags"
         }
       },
       "required": [
         "id",
-        "name",
+        "title",
         "status",
-        "totalDuration",
+        "spent",
         "startedAt",
         "createdAt",
-        "completedAt"
+        "completedAt",
+        "tags"
       ]
     },
     "user": {
       "$schema": "http://json-schema.org/draft-04/hyper-schema",
-      "title": "ユーザー",
-      "description": "ユーザーを表します。",
+      "title": "User",
+      "description": "This resource represents user",
       "stability": "prototype",
       "strictProperties": true,
       "type": [
@@ -208,7 +306,7 @@
       ],
       "definitions": {
         "id": {
-          "description": "ユーザーID",
+          "description": "user id",
           "example": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
           "readOnly": true,
           "format": "uuid",
@@ -220,7 +318,7 @@
           "$ref": "#/definitions/user/definitions/id"
         },
         "name": {
-          "description": "ユーザー名",
+          "description": "user name",
           "example": "8maki",
           "readOnly": true,
           "type": [
@@ -230,9 +328,9 @@
       },
       "links": [
         {
-          "description": "ログイン中のユーザー情報を取得します。(正常ステータスコード: `200`)",
+          "description": "Get authenticated user detail",
           "href": "/me",
-          "title": "詳細",
+          "title": "detail",
           "method": "GET",
           "rel": "self"
         }
@@ -252,6 +350,9 @@
     }
   },
   "properties": {
+    "error": {
+      "$ref": "#/definitions/error"
+    },
     "task": {
       "$ref": "#/definitions/task"
     },

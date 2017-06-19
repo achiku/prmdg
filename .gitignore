@@ -23,5 +23,6 @@ _testmain.go
 *.test
 *.prof
 
+coverage.out
 vendor
-doc/large-example.json
+example/doc/large-example.json

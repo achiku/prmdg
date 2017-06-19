@@ -1,0 +1,22 @@
+GIT
+  remote: https://github.com/interagent/prmd
+  revision: 302f10cdd85670f0562aca39d502403c799239fe
+  specs:
+    prmd (0.13.0)
+      erubis (~> 2.7)
+      json_schema (~> 0.3, >= 0.3.1)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    erubis (2.7.0)
+    json_schema (0.16.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  prmd!
+
+BUNDLED WITH
+   1.11.2

@@ -1,0 +1,63 @@
+---
+"$schema": http://json-schema.org/draft-04/hyper-schema
+title: Error
+description: This resource represents API error
+stability: prototype
+strictProperties: true
+type:
+  - object
+definitions:
+  code:
+    description: error code
+    example: "invalid_params"
+    readOnly: true
+    type:
+      - string
+    enum:
+      - invalid_params
+      - invalid_request
+      - unauthorized
+      - unsupported_client_version
+  detail:
+    description: error detail
+    example: "invalid param"
+    readOnly: true
+    type:
+      - string
+  # this errorFields could be main resource in different file,
+  # but be here to show an example where array of objects is a part of main resource
+  errorFields:
+    description: detail for invalid param field 
+    readOnly: true
+    type:
+      - array
+    items:
+      properties:
+        name:
+          description: param field name
+          example: 'status'
+          readOnly: true
+          type:
+            - string
+        message:
+          description: error message for invalid param field
+          example: 'invalid status'
+          readOnly: true
+          type:
+            - string
+      required:
+        - name
+        - message
+      type:
+        - object
+properties:
+  code:
+    $ref: "/schemata/error#/definitions/code"
+  detail:
+    $ref: "/schemata/error#/definitions/detail"
+  errorFields:
+    $ref: "/schemata/error#/definitions/errorFields"
+required:
+  - code
+  - detail
+id: schemata/error

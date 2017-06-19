@@ -103,7 +103,12 @@ func TestResourceStruct(t *testing.T) {
 				Required: true,
 			},
 			&Property{
-				Name:     "name",
+				Name:     "spent",
+				Types:    []schema.PrimitiveType{schema.IntegerType},
+				Required: true,
+			},
+			&Property{
+				Name:     "title",
 				Types:    []schema.PrimitiveType{schema.StringType},
 				Format:   "",
 				Required: true,

@@ -1,14 +1,14 @@
 ---
 "$schema": http://json-schema.org/draft-04/hyper-schema
-title: ユーザー
-description: ユーザーを表します。
+title: User
+description: This resource represents user
 stability: prototype
 strictProperties: true
 type:
   - object
 definitions:
   id:
-    description: ユーザーID
+    description: user id
     example: "ec0a1edc-062e-11e7-8b1e-040ccee2aa06"
     readOnly: true
     format: uuid
@@ -17,15 +17,15 @@ definitions:
   identity:
     $ref: "/schemata/user#/definitions/id"
   name:
-    description: ユーザー名
+    description: user name
     example: "8maki"
     readOnly: true
     type:
       - string
 links:
-  - description: "ログイン中のユーザー情報を取得します。(正常ステータスコード: `200`)"
+  - description: "Get authenticated user detail"
     href: "/me"
-    title: 詳細
+    title: detail
     method: GET
     rel: self
 properties:
