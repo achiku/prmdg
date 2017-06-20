@@ -1,11 +1,14 @@
 package main
 
-import "testing"
+import (
+	"io/ioutil"
+	"os"
+	"testing"
+)
 
 func TestGenerateStructFile(t *testing.T) {
 	pkg := "taskyapi"
-	fp := "./example/doc/schema/schema.json"
-	op := ""
+	op := ioutil.Discard
 	cases := []struct {
 		Validator bool
 		UseTitle  bool
@@ -16,26 +19,39 @@ func TestGenerateStructFile(t *testing.T) {
 		{Validator: true, UseTitle: true, Nullable: true},
 	}
 	for _, c := range cases {
-		if err := generateStructFile(&pkg, fp, &op, c.Validator, c.UseTitle, c.Nullable); err != nil {
+		fp, err := os.Open("./example/doc/schema/schema.json")
+		if err != nil {
 			t.Fatal(err)
 		}
+		if err := generateStructFile(&pkg, fp, op, c.Validator, c.UseTitle, c.Nullable); err != nil {
+			t.Fatal(err)
+		}
+		fp.Close()
 	}
 }
 
 func TestGenerateJsValValidatorFile(t *testing.T) {
 	pkg := "taskyapi"
-	fp := "./example/doc/schema/schema.json"
-	op := ""
-	if err := generateJsValValidatorFile(&pkg, fp, &op); err != nil {
+	fp, err := os.Open("./example/doc/schema/schema.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fp.Close()
+	op := ioutil.Discard
+	if err := generateJsValValidatorFile(&pkg, fp, op); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestGenerateValidatorFile(t *testing.T) {
 	pkg := "taskyapi"
-	fp := "./example/doc/schema/schema.json"
-	op := ""
-	if err := generateValidatorFile(&pkg, fp, &op); err != nil {
+	fp, err := os.Open("./example/doc/schema/schema.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fp.Close()
+	op := ioutil.Discard
+	if err := generateValidatorFile(&pkg, fp, op); err != nil {
 		t.Fatal(err)
 	}
 }

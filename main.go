@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"go/format"
+	"io"
+	"log"
 	"os"
 	"os/exec"
 	"sort"
@@ -39,25 +41,51 @@ var (
 func main() {
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
+	var (
+		in  io.Reader
+		out io.Writer
+		err error
+	)
+	if *op != "" {
+		out, err = os.Create(*op)
+		if err != nil {
+			app.Errorf("failed to create output file %s: %s", *op, err)
+		}
+	} else {
+		out = os.Stdout
+	}
+	in, err = os.Open(*fp)
+	if err != nil {
+		app.Errorf("failed to open input file %s: %s", *fp, err)
+	}
+
 	switch cmd {
 	case structCmd.FullCommand():
-		if err := generateStructFile(pkg, *fp, op, *scValidator, *scUseTitle, *scNullable); err != nil {
+		if err := generateStructFile(pkg, in, out, *scValidator, *scUseTitle, *scNullable); err != nil {
 			app.Errorf("failed to generate struct file: %s", err)
 		}
 	case jsValCmd.FullCommand():
-		if err := generateJsValValidatorFile(pkg, *fp, op); err != nil {
+		if err := generateJsValValidatorFile(pkg, in, out); err != nil {
 			app.Errorf("failed to generate jsval validator file: %s", err)
 		}
 	case validatorCmd.FullCommand():
-		if err := generateValidatorFile(pkg, *fp, op); err != nil {
+		if err := generateValidatorFile(pkg, in, out); err != nil {
 			app.Errorf("failed to generate validator file: %s", err)
+		}
+	}
+
+	if *op != "" {
+		params := []string{"-w", *op}
+		if err := exec.Command("goimports", params...).Run(); err != nil {
+			app.Errorf("failed to goimports: %s", err)
 		}
 	}
 }
 
-func generateValidatorFile(pkg *string, fp string, op *string) error {
-	sc, err := schema.ReadFile(fp)
+func generateValidatorFile(pkg *string, fp io.Reader, op io.Writer) error {
+	sc, err := schema.Read(fp)
 	if err != nil {
+		log.Printf("%s", err)
 		return errors.Wrapf(err, "failed to read %s", fp)
 	}
 	parser := NewParser(sc, *pkg)
@@ -72,30 +100,15 @@ func generateValidatorFile(pkg *string, fp string, op *string) error {
 		return err
 	}
 	src = append(src, ss...)
-	var out *os.File
-	if *op != "" {
-		out, err = os.Create(*op)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create %s", *op)
-		}
-		defer out.Close()
-		if _, err := out.Write(src); err != nil {
-			return err
-		}
-		params := []string{"-w", *op}
-		if err := exec.Command("goimports", params...).Run(); err != nil {
-			return err
-		}
-	} else {
-		if _, err := os.Stdout.Write(src); err != nil {
-			return err
-		}
+
+	if _, err := op.Write(src); err != nil {
+		return err
 	}
 	return nil
 }
 
-func generateStructFile(pkg *string, fp string, op *string, val, useTitle, nullable bool) error {
-	sc, err := schema.ReadFile(fp)
+func generateStructFile(pkg *string, fp io.Reader, op io.Writer, val, useTitle, nullable bool) error {
+	sc, err := schema.Read(fp)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read %s", fp)
 	}
@@ -170,30 +183,14 @@ func generateStructFile(pkg *string, fp string, op *string, val, useTitle, nulla
 		}
 	}
 
-	var out *os.File
-	if *op != "" {
-		out, err = os.Create(*op)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create %s", *op)
-		}
-		defer out.Close()
-		if _, err := out.Write(src); err != nil {
-			return err
-		}
-		params := []string{"-w", *op}
-		if err := exec.Command("goimports", params...).Run(); err != nil {
-			return err
-		}
-	} else {
-		if _, err := os.Stdout.Write(src); err != nil {
-			return err
-		}
+	if _, err := op.Write(src); err != nil {
+		return err
 	}
 	return nil
 }
 
-func generateJsValValidatorFile(pkg *string, fp string, op *string) error {
-	sc, err := schema.ReadFile(fp)
+func generateJsValValidatorFile(pkg *string, fp io.Reader, op io.Writer) error {
+	sc, err := schema.Read(fp)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read %s", fp)
 	}
@@ -209,24 +206,8 @@ func generateJsValValidatorFile(pkg *string, fp string, op *string) error {
 		return err
 	}
 
-	var out *os.File
-	if *op != "" {
-		out, err = os.Create(*op)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create %s", *op)
-		}
-		defer out.Close()
-		if _, err := out.Write(src.Bytes()); err != nil {
-			return err
-		}
-		params := []string{"-w", *op}
-		if err := exec.Command("goimports", params...).Run(); err != nil {
-			return err
-		}
-	} else {
-		if _, err := os.Stdout.Write(src.Bytes()); err != nil {
-			return err
-		}
+	if _, err := op.Write(src.Bytes()); err != nil {
+		return err
 	}
 	return nil
 }
