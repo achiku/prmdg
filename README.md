@@ -4,7 +4,7 @@
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/achiku/prmdg/master/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/achiku/prmdg)](https://goreportcard.com/report/github.com/achiku/prmdg)
 
-prmd format JSON Hyper Schema to Go structs, and validators
+prmd style JSON Hyper Schema to Go structs, and validators
 
 
 ## Why created
@@ -14,6 +14,8 @@ prmd format JSON Hyper Schema to Go structs, and validators
 ```
 go get -u github.com/achiku/prmdg
 ```
+
+If you want to use `github.com/gureg/null` in Go struct by adding `--nullable` option, you need to install `github.com/gureg/null` first.
 
 ## Usage
 
