@@ -9,6 +9,14 @@ prmd style JSON Hyper Schema to Go structs, and validators
 
 ## Why created
 
+## Prerequisite
+
+```
+go get -u golang.org/x/tools/cmd/goimports
+```
+
+`prmdg` applies `goimports` to the ourput file.
+
 ## Installation
 
 ```
