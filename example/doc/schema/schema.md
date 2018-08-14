@@ -23,6 +23,8 @@ Tasky-App-Version 1.0.0
 
 ## The table of contents
 
+- <a href="#resource-coupon">User</a>
+  - <a href="#link-POST-coupon-/coupon/redeem">POST /coupon/redeem</a>
 - <a href="#resource-error">Error</a>
 - <a href="#resource-task">Task</a>
   - <a href="#link-GET-task-/tasks/{(%23%2Fdefinitions%2Ftask%2Fdefinitions%2Fidentity)}">GET /tasks/{task_id}</a>
@@ -30,6 +32,62 @@ Tasky-App-Version 1.0.0
   - <a href="#link-GET-task-/tasks">GET /tasks</a>
 - <a href="#resource-user">User</a>
   - <a href="#link-GET-user-/me">GET /me</a>
+
+## <a name="resource-coupon">User</a>
+
+Stability: `prototype`
+
+This resource represents coupon
+
+### Attributes
+
+| Name | Type | Description | Example |
+| ------- | ------- | ------- | ------- |
+| **code** | *string* | coupon code | `"1234abcd"` |
+| **id** | *uuid* | coupon id | `"ec0a1edc-062e-11e7-8b1e-040ccee2aa06"` |
+| **name** | *string* | coupon name | `"first time task complete"` |
+
+### <a name="link-POST-coupon-/coupon/redeem">User redeem</a>
+
+Redeem coupon
+
+```
+POST /coupon/redeem
+```
+
+#### Required Parameters
+
+| Name | Type | Description | Example |
+| ------- | ------- | ------- | ------- |
+| **code** | *string* | coupon code | `"1234abcd"` |
+
+
+
+#### Curl Example
+
+```bash
+$ curl -n -X POST https://tasky.io/v1/coupon/redeem \
+  -d '{
+  "code": "1234abcd"
+}' \
+  -H "Content-Type: application/json"
+```
+
+
+#### Response Example
+
+```
+HTTP/1.1 201 Created
+```
+
+```json
+{
+  "id": "ec0a1edc-062e-11e7-8b1e-040ccee2aa06",
+  "name": "first time task complete",
+  "code": "1234abcd"
+}
+```
+
 
 ## <a name="resource-error">Error</a>
 

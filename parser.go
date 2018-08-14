@@ -121,7 +121,7 @@ func NewProperty(name string, tp *schema.Schema, df *schema.Schema, root *schema
 		Name:      name,
 		Format:    string(fieldSchema.Format),
 		Types:     fieldSchema.Type,
-		Required:  df.IsPropRequired(name),
+		Required:  root.IsPropRequired(name),
 		Pattern:   fieldSchema.Pattern,
 		Reference: ref,
 		Schema:    fieldSchema,
