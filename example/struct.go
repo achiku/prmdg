@@ -2,6 +2,13 @@ package taskyapi
 
 import "time"
 
+// Coupon struct for coupon resource
+type Coupon struct {
+	Code string `json:"code,omitempty"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 // Error struct for error resource
 type Error struct {
 	Code        string `json:"code"`
@@ -31,6 +38,16 @@ type User struct {
 	Name string `json:"name"`
 }
 
+// CouponCreateRequest struct for coupon
+// POST: /coupon/redeem
+type CouponCreateRequest struct {
+	Code string `json:"code"`
+}
+
+// CouponCreateResponse struct for coupon
+// POST: /coupon/redeem
+type CouponCreateResponse Coupon
+
 // TaskInstancesRequest struct for task
 // GET: /tasks
 type TaskInstancesRequest struct {
@@ -49,7 +66,7 @@ type TaskSelfResponse Task
 // TaskCreateRequest struct for task
 // POST: /tasks
 type TaskCreateRequest struct {
-	Tags  []string `json:"tags"`
+	Tags  []string `json:"tags,omitempty"`
 	Title string   `json:"title"`
 }
 

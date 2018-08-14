@@ -3,85 +3,128 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:cdb42f163b76e5e12a03f33b40343da84a586ae5d72af92dbcc09d36b47f4a76"
   name = "github.com/achiku/varfmt"
   packages = ["."]
+  pruneopts = ""
   revision = "f820e1efecee3c7b75ef5b95e4481af31bf143c5"
 
 [[projects]]
   branch = "master"
+  digest = "1:1399282ad03ac819f0e8a747c888407c5c98bb497d33821a7047c7bae667ede0"
   name = "github.com/alecthomas/template"
-  packages = [".","parse"]
+  packages = [
+    ".",
+    "parse",
+  ]
+  pruneopts = ""
   revision = "a0175ee3bccc567396460bf5acd36800cb10c49c"
 
 [[projects]]
   branch = "master"
+  digest = "1:8483994d21404c8a1d489f6be756e25bfccd3b45d65821f25695577791a08e68"
   name = "github.com/alecthomas/units"
   packages = ["."]
+  pruneopts = ""
   revision = "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a"
 
 [[projects]]
+  digest = "1:0a39ec8bf5629610a4bc7873a92039ee509246da3cef1a0ea60f1ed7e5f9cea5"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
+  pruneopts = ""
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
   version = "v1.1.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:eb6d704cdd893be688b594e28edb78f7bd6852a88021c8c0ad029e7ff41d6fcd"
   name = "github.com/lestrrat/go-jshschema"
   packages = ["."]
+  pruneopts = ""
   revision = "4514acd168a63041862eb3d223a09a789cae6b3b"
 
 [[projects]]
   branch = "master"
+  digest = "1:6ec1a5a4b41a65dffbc9f021ed83e2817ad896abaf4ad399cf4aa1a536903229"
   name = "github.com/lestrrat/go-jspointer"
   packages = ["."]
+  pruneopts = ""
   revision = "f4881e611bdbe9fb413a7780721ef8400a1f2341"
 
 [[projects]]
   branch = "master"
+  digest = "1:7f77a7ee02280d7540413487afcd845140389aacbca856cd0be37767c98b29b6"
   name = "github.com/lestrrat/go-jsref"
-  packages = [".","provider"]
+  packages = [
+    ".",
+    "provider",
+  ]
+  pruneopts = ""
   revision = "50df7b2d07d799426a9ac43fa24bdb4785f72a54"
 
 [[projects]]
   branch = "master"
+  digest = "1:1f35022e6cc28f4c2533a2b778cfca9169e4cbdf8a083ed3694ccc925afdd023"
   name = "github.com/lestrrat/go-jsschema"
   packages = ["."]
+  pruneopts = ""
   revision = "a6a42341b50d8d7e2a733db922eefaa756321021"
 
 [[projects]]
   branch = "master"
+  digest = "1:47284ff48e4ab0045404b825f211d2aa04465d4e257f209b95ccbd720c0cf9e1"
   name = "github.com/lestrrat/go-jsval"
-  packages = [".","builder"]
+  packages = [
+    ".",
+    "builder",
+  ]
+  pruneopts = ""
   revision = "cf70aae60f5b41a32922066c41287b0168e55904"
 
 [[projects]]
   branch = "master"
+  digest = "1:d785c1fdc4623818480bfca8a4a2d647a5d665a93bbbfe9c5cf021dcf5e88b82"
   name = "github.com/lestrrat/go-pdebug"
   packages = ["."]
+  pruneopts = ""
   revision = "2e6eaaa5717f81bda41d27070d3c966f40a1e75f"
 
 [[projects]]
   branch = "master"
+  digest = "1:6a88d28cc7265996d788b023ec55cd7661648e0d61439db4cfff66410c058fef"
   name = "github.com/lestrrat/go-structinfo"
   packages = ["."]
+  pruneopts = ""
   revision = "f74c056fe41f860aa6264478c664a6fff8a64298"
 
 [[projects]]
   branch = "master"
+  digest = "1:3feb34391c5d3f22c7aea09e6c04caae198a9cd196d33e2af11e371296523e7e"
   name = "github.com/pkg/errors"
   packages = ["."]
+  pruneopts = ""
   revision = "c605e284fe17294bda444b34710735b29d1a9d90"
 
 [[projects]]
+  digest = "1:9c06e5cc6253ec41d605368f70d9663e0af8d8b9e9de93d63f974b47eb8d5bdf"
   name = "gopkg.in/alecthomas/kingpin.v2"
   packages = ["."]
+  pruneopts = ""
   revision = "7f0871f2e17818990e4eed73f9b5c2f429501228"
   version = "v2.2.4"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c75562afc99c9398298b0d314585e5feac26c129334d8238d72c70d8071f9594"
+  input-imports = [
+    "github.com/achiku/varfmt",
+    "github.com/lestrrat/go-jshschema",
+    "github.com/lestrrat/go-jsschema",
+    "github.com/lestrrat/go-jsval",
+    "github.com/lestrrat/go-jsval/builder",
+    "github.com/pkg/errors",
+    "gopkg.in/alecthomas/kingpin.v2",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1

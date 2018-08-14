@@ -1,0 +1,53 @@
+---
+"$schema": http://json-schema.org/draft-04/hyper-schema
+title: User
+description: This resource represents coupon
+stability: prototype
+strictProperties: true
+type:
+  - object
+definitions:
+  id:
+    description: coupon id
+    example: "ec0a1edc-062e-11e7-8b1e-040ccee2aa06"
+    readOnly: true
+    format: uuid
+    type:
+      - string
+  name:
+    description: coupon name
+    example: "first time task complete"
+    readOnly: true
+    type:
+      - string
+  code:
+    description: coupon code
+    example: "1234abcd"
+    readOnly: true
+    type:
+      - string
+links:
+  - description: "Redeem coupon"
+    href: "/coupon/redeem"
+    title: redeem
+    method: POST
+    rel: create
+    schema:
+      properties:
+        code:
+          $ref: "/schemata/coupon#/definitions/code"
+      required:
+        - code
+      type:
+        - object
+properties:
+  id:
+    $ref: "/schemata/coupon#/definitions/id"
+  name:
+    $ref: "/schemata/coupon#/definitions/name"
+  code:
+    $ref: "/schemata/coupon#/definitions/code"
+required:
+  - id
+  - name
+id: schemata/coupon
