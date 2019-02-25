@@ -6,10 +6,10 @@ import (
 	"strings"
 
 	"github.com/achiku/varfmt"
-	hschema "github.com/lestrrat/go-jshschema"
-	schema "github.com/lestrrat/go-jsschema"
-	jsval "github.com/lestrrat/go-jsval"
-	"github.com/lestrrat/go-jsval/builder"
+	"github.com/lestrrat-go/go-jsval/builder"
+	hschema "github.com/lestrrat-go/jshschema"
+	schema "github.com/lestrrat-go/jsschema"
+	"github.com/lestrrat-go/jsval"
 	"github.com/pkg/errors"
 )
 

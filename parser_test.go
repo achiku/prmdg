@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	schema "github.com/lestrrat/go-jsschema"
+	schema "github.com/lestrrat-go/jsschema"
 )
 
 func testNewParser(t *testing.T) *Parser {

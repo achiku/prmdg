@@ -46,7 +46,7 @@ Commands:
     generate struct file
 
   jsval
-    generate validator file using github.com/lestrrat/go-jsval
+    generate validator file using github.com/lestrrat-go/go-jsval
 
   validator
     generate validator file using github.com/go-playground/validator
@@ -76,7 +76,7 @@ Flags:
 ```
 usage: prmdg jsval
 
-generate validator file using github.com/lestrrat/go-jsval
+generate validator file using github.com/lestrrat-go/go-jsval
 
 Flags:
       --help            Show context-sensitive help (also try --help-long and --help-man).
