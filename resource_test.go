@@ -4,7 +4,7 @@ import (
 	"go/format"
 	"testing"
 
-	schema "github.com/lestrrat/go-jsschema"
+	schema "github.com/lestrrat-go/jsschema"
 )
 
 func TestRefToStructName(t *testing.T) {

@@ -10,8 +10,8 @@ import (
 	"os/exec"
 	"sort"
 
-	schema "github.com/lestrrat/go-jsschema"
-	jsval "github.com/lestrrat/go-jsval"
+	schema "github.com/lestrrat-go/jsschema"
+	"github.com/lestrrat-go/jsval"
 	"github.com/pkg/errors"
 
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
@@ -29,7 +29,7 @@ var (
 
 	structCmd = app.Command("struct", "generate struct file")
 	jsValCmd  = app.Command(
-		"jsval", "generate validator file using github.com/lestrrat/go-jsval")
+		"jsval", "generate validator file using github.com/lestrrat-go/go-jsval")
 	validatorCmd = app.Command(
 		"validator", "generate validator file using github.com/go-playground/validator")
 

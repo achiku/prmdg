@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/achiku/varfmt"
-	schema "github.com/lestrrat/go-jsschema"
+	schema "github.com/lestrrat-go/jsschema"
 )
 
 // Resource plain resource

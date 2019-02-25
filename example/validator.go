@@ -1,6 +1,6 @@
 package taskyapi
 
-import jsval "github.com/lestrrat/go-jsval"
+import jsval "github.com/lestrrat-go/go-jsval"
 
 var TaskCreateValidator *jsval.JSVal
 var TaskInstancesValidator *jsval.JSVal

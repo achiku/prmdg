@@ -72,15 +72,15 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/lestrrat/go-jshschema"
+  name = "github.com/lestrrat-go/jshschema"
 
 [[constraint]]
   branch = "master"
-  name = "github.com/lestrrat/go-jsschema"
+  name = "github.com/lestrrat-go/jsschema"
 
 [[constraint]]
   branch = "master"
-  name = "github.com/lestrrat/go-jsval"
+  name = "github.com/lestrrat-go/jsval"
 
 [[constraint]]
   branch = "master"
