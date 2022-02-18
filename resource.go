@@ -53,6 +53,7 @@ type Property struct {
 	InlineProperties []*Property
 	Pattern          *regexp.Regexp
 	Schema           *schema.Schema
+	Method           string
 }
 
 func normalize(n string) string {
@@ -217,6 +218,9 @@ func (pr *Property) ScalarType(op FormatOption) string {
 	case types.Contains(schema.IntegerType):
 		return "int64"
 	case types.Contains(schema.BooleanType):
+		if pr.Method == "PATCH" {
+			return "*bool"
+		}
 		return "bool"
 	case types.Contains(schema.StringType):
 		if pr.Format == "date-time" {

@@ -110,7 +110,7 @@ func sortValidator(vals []*jsval.JSVal) []*jsval.JSVal {
 }
 
 // NewProperty new property
-func NewProperty(name string, tp *schema.Schema, df *schema.Schema, root *schema.Schema) (*Property, error) {
+func NewProperty(name string, tp *schema.Schema, df *schema.Schema, root *schema.Schema, method string) (*Property, error) {
 	// save reference before resolving ref
 	ref := tp.Reference
 	fieldSchema, err := resolveSchema(tp, root)
@@ -125,6 +125,7 @@ func NewProperty(name string, tp *schema.Schema, df *schema.Schema, root *schema
 		Pattern:   fieldSchema.Pattern,
 		Reference: ref,
 		Schema:    fieldSchema,
+		Method:    method,
 	}
 	switch {
 	case fieldSchema.Type.Contains(schema.ArrayType):
@@ -149,7 +150,7 @@ func NewProperty(name string, tp *schema.Schema, df *schema.Schema, root *schema
 			// log.Printf("inline obj: %s: %v", name, fieldSchema.Properties)
 			var inlineFields []*Property
 			for k, prop := range fieldSchema.Properties {
-				f, err := NewProperty(k, prop, df, root)
+				f, err := NewProperty(k, prop, df, root, method)
 				if err != nil {
 					return nil, errors.Wrapf(err, "failed to perse inline object: %s", k)
 				}
@@ -171,7 +172,7 @@ func NewProperty(name string, tp *schema.Schema, df *schema.Schema, root *schema
 			// log.Printf("resolved inline obj: %s: %v", name, item.Properties)
 			var inlineFields []*Property
 			for k, prop := range item.Properties {
-				f, err := NewProperty(k, prop, df, root)
+				f, err := NewProperty(k, prop, df, root, method)
 				if err != nil {
 					return nil, errors.Wrapf(err, "failed to perse inline object: %s", k)
 				}
@@ -183,7 +184,7 @@ func NewProperty(name string, tp *schema.Schema, df *schema.Schema, root *schema
 			// log.Printf("resolved inline obj: %s: %v", name, resolvedItem.Properties)
 			var inlineFields []*Property
 			for k, prop := range resolvedItem.Properties {
-				f, err := NewProperty(k, prop, df, root)
+				f, err := NewProperty(k, prop, df, root, method)
 				if err != nil {
 					return nil, errors.Wrapf(err, "failed to perse inline object: %s", k)
 				}
@@ -200,7 +201,7 @@ func NewProperty(name string, tp *schema.Schema, df *schema.Schema, root *schema
 			// inline object without definitions
 			var inlineFields []*Property
 			for k, prop := range fieldSchema.Properties {
-				f, err := NewProperty(k, prop, df, root)
+				f, err := NewProperty(k, prop, df, root, method)
 				if err != nil {
 					return nil, errors.Wrapf(err, "failed to perse inline object: %s", k)
 				}
@@ -252,7 +253,7 @@ func (p *Parser) ParseResources() (map[string]Resource, error) {
 		// parse resource field
 		var flds []*Property
 		for name, tp := range df.Properties {
-			fld, err := NewProperty(name, tp, df, p.schema)
+			fld, err := NewProperty(name, tp, df, p.schema, "")
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to parse %s", id)
 			}
@@ -298,7 +299,7 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 			if e.Schema != nil {
 				var flds []*Property
 				for name, tp := range e.Schema.Properties {
-					fld, err := NewProperty(name, tp, df, p.schema)
+					fld, err := NewProperty(name, tp, df, p.schema, e.Method)
 					if err != nil {
 						return nil, errors.Wrapf(err, "failed to parse %s", id)
 					}
@@ -318,7 +319,7 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 				case e.TargetSchema.Reference == "":
 					var flds []*Property
 					for name, tp := range e.TargetSchema.Properties {
-						fld, err := NewProperty(name, tp, df, p.schema)
+						fld, err := NewProperty(name, tp, df, p.schema, e.Method)
 						if err != nil {
 							return nil, errors.Wrapf(err, "failed to parse %s", id)
 						}
@@ -339,7 +340,7 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 						IsPrimary: false,
 					}
 				case e.TargetSchema.Reference != "" && !IsRefToMainResource(e.TargetSchema.Reference):
-					fld, err := NewProperty(e.TargetSchema.ID, e.TargetSchema, df, p.schema)
+					fld, err := NewProperty(e.TargetSchema.ID, e.TargetSchema, df, p.schema, e.Method)
 					if err != nil {
 						return nil, errors.Wrapf(err, "failed to parse %s", id)
 					}
