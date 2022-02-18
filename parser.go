@@ -298,7 +298,7 @@ func (p *Parser) ParseActions(res map[string]Resource) (map[string][]Action, err
 			if e.Schema != nil {
 				var flds []*Property
 				for name, tp := range e.Schema.Properties {
-					fld, err := NewProperty(name, tp, e.Schema, p.schema)
+					fld, err := NewProperty(name, tp, df, p.schema)
 					if err != nil {
 						return nil, errors.Wrapf(err, "failed to parse %s", id)
 					}
