@@ -20,10 +20,8 @@ go get -u golang.org/x/tools/cmd/goimports
 ## Installation
 
 ```
-go get -u github.com/achiku/prmdg
+go install github.com/kanmu/prmdg@latest
 ```
-
-If you want to use `github.com/gureg/null` in Go struct by adding `--nullable` option, you need to install `github.com/gureg/null` first.
 
 ## Usage
 

@@ -19,7 +19,7 @@ func TestGenerateStructFile(t *testing.T) {
 		{Validator: true, UseTitle: true, Nullable: true},
 	}
 	for _, c := range cases {
-		fp, err := os.Open("./example/doc/schema/schema.json")
+		fp, err := os.Open("./_example/doc/schema/schema.json")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -32,7 +32,7 @@ func TestGenerateStructFile(t *testing.T) {
 
 func TestGenerateJsValValidatorFile(t *testing.T) {
 	pkg := "taskyapi"
-	fp, err := os.Open("./example/doc/schema/schema.json")
+	fp, err := os.Open("./_example/doc/schema/schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestGenerateJsValValidatorFile(t *testing.T) {
 
 func TestGenerateValidatorFile(t *testing.T) {
 	pkg := "taskyapi"
-	fp, err := os.Open("./example/doc/schema/schema.json")
+	fp, err := os.Open("./_example/doc/schema/schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -7,7 +7,7 @@ import (
 )
 
 func testNewParser(t *testing.T) *Parser {
-	sc, err := schema.ReadFile("./example/doc/schema/schema.json")
+	sc, err := schema.ReadFile("./_example/doc/schema/schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
